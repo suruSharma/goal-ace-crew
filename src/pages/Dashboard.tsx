@@ -890,102 +890,104 @@ export default function Dashboard() {
           </motion.div>
         )}
 
-        {/* Day Tasks */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-        >
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-4">
-              <h2 className="text-xl font-display font-semibold flex items-center gap-2">
-                <Calendar className="w-5 h-5 text-primary" />
-                {isViewingToday ? "Today's Tasks" : `Day ${viewingDay} Tasks`}
-              </h2>
-              
-              {/* Day Navigation */}
-              {challenge && challenge.currentDay > 1 && (
-                <div className="flex items-center gap-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    disabled={viewingDay <= 1 || tasksLoading}
-                    onClick={() => goToDay(viewingDay - 1)}
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                  </Button>
-                  <span className="text-sm text-muted-foreground min-w-[60px] text-center">
-                    Day {viewingDay}
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    disabled={viewingDay >= challenge.currentDay || tasksLoading}
-                    onClick={() => goToDay(viewingDay + 1)}
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </Button>
-                  {!isViewingToday && (
+        {/* Day Tasks - only show when there's an active personal challenge */}
+        {challenge && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-4">
+                <h2 className="text-xl font-display font-semibold flex items-center gap-2">
+                  <Calendar className="w-5 h-5 text-primary" />
+                  {isViewingToday ? "Today's Tasks" : `Day ${viewingDay} Tasks`}
+                </h2>
+                
+                {/* Day Navigation */}
+                {challenge.currentDay > 1 && (
+                  <div className="flex items-center gap-1">
                     <Button
-                      variant="outline"
-                      size="sm"
-                      className="ml-2"
-                      onClick={() => goToDay(challenge.currentDay)}
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      disabled={viewingDay <= 1 || tasksLoading}
+                      onClick={() => goToDay(viewingDay - 1)}
                     >
-                      Go to Today
+                      <ChevronLeft className="w-4 h-4" />
                     </Button>
-                  )}
-                </div>
-              )}
+                    <span className="text-sm text-muted-foreground min-w-[60px] text-center">
+                      Day {viewingDay}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      disabled={viewingDay >= challenge.currentDay || tasksLoading}
+                      onClick={() => goToDay(viewingDay + 1)}
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
+                    {!isViewingToday && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="ml-2"
+                        onClick={() => goToDay(challenge.currentDay)}
+                      >
+                        Go to Today
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
 
-          {/* Past day indicator */}
-          {!isViewingToday && (
-            <div className="mb-4 p-3 rounded-lg bg-muted/50 border border-border">
-              <p className="text-sm text-muted-foreground">
-                You are viewing a past day. You can still mark tasks as complete if you missed them.
-              </p>
-            </div>
-          )}
-          
-          {tasksLoading ? (
-            <TaskCardSkeletonGroup count={5} />
-          ) : (
-            <div className="grid gap-3">
-              {tasks.map((task, index) => (
-                <motion.div
-                  key={task.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.1 + index * 0.05 }}
-                >
-                  <TaskCard
-                    name={task.name}
-                    description={task.description}
-                    weight={task.weight}
-                    completed={task.completed}
-                    onToggle={() => toggleTask(task.id, recalculateStreak)}
-                  />
-                </motion.div>
-              ))}
-            </div>
-          )}
+            {/* Past day indicator */}
+            {!isViewingToday && (
+              <div className="mb-4 p-3 rounded-lg bg-muted/50 border border-border">
+                <p className="text-sm text-muted-foreground">
+                  You are viewing a past day. You can still mark tasks as complete if you missed them.
+                </p>
+              </div>
+            )}
+            
+            {tasksLoading ? (
+              <TaskCardSkeletonGroup count={5} />
+            ) : (
+              <div className="grid gap-3">
+                {tasks.map((task, index) => (
+                  <motion.div
+                    key={task.id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.1 + index * 0.05 }}
+                  >
+                    <TaskCard
+                      name={task.name}
+                      description={task.description}
+                      weight={task.weight}
+                      completed={task.completed}
+                      onToggle={() => toggleTask(task.id, recalculateStreak)}
+                    />
+                  </motion.div>
+                ))}
+              </div>
+            )}
 
-          {progress === 100 && isViewingToday && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="mt-6 p-6 rounded-2xl bg-primary/10 border border-primary/30 text-center"
-            >
-              <span className="text-4xl mb-2 block">🎉</span>
-              <h3 className="font-display text-xl font-bold text-primary">Day Complete!</h3>
-              <p className="text-muted-foreground mt-1">You crushed it today. See you tomorrow!</p>
-            </motion.div>
-          )}
-        </motion.div>
+            {progress === 100 && isViewingToday && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="mt-6 p-6 rounded-2xl bg-primary/10 border border-primary/30 text-center"
+              >
+                <span className="text-4xl mb-2 block">🎉</span>
+                <h3 className="font-display text-xl font-bold text-primary">Day Complete!</h3>
+                <p className="text-muted-foreground mt-1">You crushed it today. See you tomorrow!</p>
+              </motion.div>
+            )}
+          </motion.div>
+        )}
 
         {/* Group Tasks Section */}
         {user && myGroups.length > 0 && (
