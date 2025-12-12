@@ -247,10 +247,31 @@ export default function Dashboard() {
     }
   }, []);
 
-  const handleChallengeCreated = async () => {
+  const handleChallengeCreated = async (challengeId: string) => {
     setShowSetup(false);
     setLoading(true);
-    await fetchData();
+    
+    // Fetch the newly created challenge directly
+    const { data: newChallenge } = await supabase
+      .from('user_challenges')
+      .select('*')
+      .eq('id', challengeId)
+      .single();
+    
+    if (newChallenge) {
+      setChallenge({
+        id: newChallenge.id,
+        currentDay: 1,
+        totalDays: newChallenge.total_days || 75,
+        startDate: newChallenge.start_date
+      });
+      setViewingDay(1);
+      
+      // Fetch tasks for day 1
+      await fetchOrCreateTasks(newChallenge.id, 1);
+    }
+    
+    setLoading(false);
   };
 
   const toggleTask = async (taskId: string) => {
