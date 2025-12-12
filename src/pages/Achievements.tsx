@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { PageLoadingSkeleton } from '@/components/PageLoadingSkeleton';
+import { AchievementIcon } from '@/components/AchievementIcon';
 import { 
   Flame, ArrowLeft, Trophy, Lock, Unlock, 
   Filter, Zap, Target, Star, Award, Users
@@ -250,7 +251,9 @@ export default function Achievements() {
                     <Card className="border-primary/30 bg-primary/5">
                       <CardContent className="pt-6">
                         <div className="flex gap-4">
-                          <div className="text-4xl">{achievement.icon}</div>
+                          <div className="text-primary">
+                            <AchievementIcon icon={achievement.icon} size="lg" />
+                          </div>
                           <div className="flex-1 space-y-2">
                             <div className="flex items-start justify-between">
                               <div>
@@ -298,7 +301,9 @@ export default function Achievements() {
                     <Card className="border-border/50 bg-muted/30">
                       <CardContent className="pt-6">
                         <div className="flex gap-4">
-                          <div className="text-4xl grayscale opacity-50">{achievement.icon}</div>
+                          <div className="text-muted-foreground/50">
+                            <AchievementIcon icon={achievement.icon} size="lg" />
+                          </div>
                           <div className="flex-1 space-y-3">
                             <div className="flex items-start justify-between">
                               <div>
