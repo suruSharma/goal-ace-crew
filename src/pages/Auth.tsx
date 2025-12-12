@@ -2,9 +2,11 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { ProfileSetupDialog } from '@/components/ProfileSetupDialog';
 import { useToast } from '@/hooks/use-toast';
 import { Flame, ArrowRight, Loader2 } from 'lucide-react';
 import { z } from 'zod';
@@ -21,15 +23,34 @@ export default function Auth() {
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showProfileSetup, setShowProfileSetup] = useState(false);
   const { signIn, signUp, user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (user) {
+    if (user && !showProfileSetup) {
+      // Check if profile is complete
+      checkProfileComplete();
+    }
+  }, [user, showProfileSetup]);
+
+  const checkProfileComplete = async () => {
+    if (!user) return;
+    
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('birthdate, current_weight, goal_weight, goal_date')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    // If any required field is missing, show setup dialog
+    if (profile && (!profile.birthdate || !profile.current_weight || !profile.goal_weight || !profile.goal_date)) {
+      setShowProfileSetup(true);
+    } else {
       navigate('/dashboard');
     }
-  }, [user, navigate]);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,8 +76,10 @@ export default function Auth() {
       } else if (!isLogin) {
         toast({
           title: "Account created!",
-          description: "Welcome to 75 Hard. Let's get started!"
+          description: "Welcome to 75 Hard. Let's set up your profile!"
         });
+        // Show profile setup for new signups
+        setShowProfileSetup(true);
       }
     } catch (err) {
       if (err instanceof z.ZodError) {
@@ -69,6 +92,11 @@ export default function Auth() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleProfileComplete = () => {
+    setShowProfileSetup(false);
+    navigate('/dashboard');
   };
 
   return (
@@ -156,6 +184,16 @@ export default function Auth() {
           </div>
         </div>
       </motion.div>
+
+      {/* Profile Setup Dialog */}
+      {user && (
+        <ProfileSetupDialog
+          open={showProfileSetup}
+          onOpenChange={setShowProfileSetup}
+          userId={user.id}
+          onComplete={handleProfileComplete}
+        />
+      )}
     </div>
   );
 }

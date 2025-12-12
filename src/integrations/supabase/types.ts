@@ -186,6 +186,7 @@ export type Database = {
           current_weight: number | null
           email: string | null
           full_name: string | null
+          goal_date: string | null
           goal_weight: number | null
           id: string
           timezone: string | null
@@ -198,6 +199,7 @@ export type Database = {
           current_weight?: number | null
           email?: string | null
           full_name?: string | null
+          goal_date?: string | null
           goal_weight?: number | null
           id: string
           timezone?: string | null
@@ -210,6 +212,7 @@ export type Database = {
           current_weight?: number | null
           email?: string | null
           full_name?: string | null
+          goal_date?: string | null
           goal_weight?: number | null
           id?: string
           timezone?: string | null
