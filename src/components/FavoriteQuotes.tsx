@@ -7,9 +7,11 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 interface FavoriteQuote {
   id: string;
-  quote_text: string;
-  quote_author: string;
   created_at: string;
+  quotes: {
+    text: string;
+    author: string;
+  };
 }
 
 interface FavoriteQuotesProps {
@@ -29,12 +31,12 @@ export function FavoriteQuotes({ userId }: FavoriteQuotesProps) {
     try {
       const { data, error } = await supabase
         .from('favorite_quotes')
-        .select('*')
+        .select('id, created_at, quotes(text, author)')
         .eq('user_id', userId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setQuotes(data || []);
+      setQuotes((data as unknown as FavoriteQuote[]) || []);
     } catch (error: any) {
       console.error('Error fetching favorites:', error);
     } finally {
@@ -94,10 +96,10 @@ export function FavoriteQuotes({ userId }: FavoriteQuotesProps) {
           >
             <Quote className="absolute top-3 left-3 w-4 h-4 text-primary/40" />
             <p className="text-sm italic text-muted-foreground pl-6 pr-8">
-              "{quote.quote_text}"
+              "{quote.quotes.text}"
             </p>
             <p className="text-xs text-primary mt-2 text-right">
-              — {quote.quote_author}
+              — {quote.quotes.author}
             </p>
             <button
               onClick={() => removeFavorite(quote.id)}
