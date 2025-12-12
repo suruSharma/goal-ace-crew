@@ -286,6 +286,73 @@ export default function Profile() {
   const handleDeleteProfile = async () => {
     setDeleting(true);
     try {
+      // Transfer ownership of groups before deletion
+      const { data: ownedGroups } = await supabase
+        .from('groups')
+        .select('id')
+        .eq('created_by', user!.id);
+
+      if (ownedGroups && ownedGroups.length > 0) {
+        for (const group of ownedGroups) {
+          // Get all other members of this group
+          const { data: members } = await supabase
+            .from('group_members')
+            .select('user_id')
+            .eq('group_id', group.id)
+            .neq('user_id', user!.id);
+
+          if (members && members.length > 0) {
+            // Calculate points for each member to find top of leaderboard
+            const memberPoints = await Promise.all(
+              members.map(async (m) => {
+                const { data: challenge } = await supabase
+                  .from('user_challenges')
+                  .select('id')
+                  .eq('user_id', m.user_id)
+                  .eq('is_active', true)
+                  .maybeSingle();
+
+                let points = 0;
+                if (challenge) {
+                  const { data: tasks } = await supabase
+                    .from('daily_tasks')
+                    .select(`
+                      completed,
+                      challenge_templates (weight)
+                    `)
+                    .eq('user_challenge_id', challenge.id)
+                    .eq('completed', true);
+
+                  if (tasks) {
+                    points = tasks.reduce((sum: number, t: any) => 
+                      sum + (t.challenge_templates?.weight || 0), 0
+                    );
+                  }
+                }
+                return { userId: m.user_id, points };
+              })
+            );
+
+            // Sort by points descending and get top member
+            memberPoints.sort((a, b) => b.points - a.points);
+            const newOwner = memberPoints[0].userId;
+
+            // Transfer ownership
+            await supabase
+              .from('groups')
+              .update({ created_by: newOwner })
+              .eq('id', group.id);
+          } else {
+            // No other members - delete the group
+            await supabase
+              .from('groups')
+              .delete()
+              .eq('id', group.id);
+          }
+        }
+      }
+
+      // Delete user's challenges and tasks
       const { data: challenges } = await supabase
         .from('user_challenges')
         .select('id')
@@ -304,16 +371,19 @@ export default function Profile() {
           .eq('user_id', user!.id);
       }
 
+      // Delete group memberships
       await supabase
         .from('group_members')
         .delete()
         .eq('user_id', user!.id);
 
+      // Delete weight history
       await supabase
         .from('weight_history')
         .delete()
         .eq('user_id', user!.id);
 
+      // Delete profile
       await supabase
         .from('profiles')
         .delete()
