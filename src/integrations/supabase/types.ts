@@ -281,6 +281,7 @@ export type Database = {
           goal_weight: number | null
           height_cm: number | null
           id: string
+          recovery_email: string | null
           timezone: string | null
           updated_at: string | null
         }
@@ -295,6 +296,7 @@ export type Database = {
           goal_weight?: number | null
           height_cm?: number | null
           id: string
+          recovery_email?: string | null
           timezone?: string | null
           updated_at?: string | null
         }
@@ -309,6 +311,7 @@ export type Database = {
           goal_weight?: number | null
           height_cm?: number | null
           id?: string
+          recovery_email?: string | null
           timezone?: string | null
           updated_at?: string | null
         }
