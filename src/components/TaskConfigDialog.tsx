@@ -64,7 +64,7 @@ export function TaskConfigDialog({
     setLoading(true);
     try {
       let query = supabase
-        .from('challenge_templates')
+        .from('challenges')
         .select('*');
 
       if (groupId) {
@@ -141,12 +141,12 @@ export function TaskConfigDialog({
       // Delete existing custom templates
       if (groupId) {
         await supabase
-          .from('challenge_templates')
+          .from('challenges')
           .delete()
           .eq('group_id', groupId);
       } else {
         await supabase
-          .from('challenge_templates')
+          .from('challenges')
           .delete()
           .eq('created_by', userId)
           .is('group_id', null);
@@ -163,7 +163,7 @@ export function TaskConfigDialog({
       }));
 
       const { error } = await supabase
-        .from('challenge_templates')
+        .from('challenges')
         .insert(templatesData);
 
       if (error) throw error;

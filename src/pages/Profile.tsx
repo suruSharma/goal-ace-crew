@@ -341,13 +341,13 @@ export default function Profile() {
               if (challenge) {
                 const { data: tasks } = await supabase
                   .from('daily_tasks')
-                  .select(`completed, challenge_templates (weight)`)
+                  .select(`completed, challenges (weight)`)
                   .eq('user_challenge_id', challenge.id)
                   .eq('completed', true);
 
                 if (tasks) {
                   points = tasks.reduce((sum: number, t: any) => 
-                    sum + (t.challenge_templates?.weight || 0), 0
+                    sum + (t.challenges?.weight || 0), 0
                   );
                 }
               }
@@ -417,14 +417,14 @@ export default function Profile() {
                     .from('daily_tasks')
                     .select(`
                       completed,
-                      challenge_templates (weight)
+                      challenges (weight)
                     `)
                     .eq('user_challenge_id', challenge.id)
                     .eq('completed', true);
 
                   if (tasks) {
                     points = tasks.reduce((sum: number, t: any) => 
-                      sum + (t.challenge_templates?.weight || 0), 0
+                      sum + (t.challenges?.weight || 0), 0
                     );
                   }
                 }
@@ -493,9 +493,9 @@ export default function Profile() {
         .delete()
         .eq('user_id', user!.id);
 
-      // Delete user's custom challenge templates
+      // Delete user's custom challenges
       await supabase
-        .from('challenge_templates')
+        .from('challenges')
         .delete()
         .eq('created_by', user!.id)
         .eq('is_default', false);

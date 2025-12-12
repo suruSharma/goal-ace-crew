@@ -174,7 +174,7 @@ export default function Groups() {
 
           // Get group's task templates
           const { data: templates } = await supabase
-            .from('challenge_templates')
+            .from('challenges')
             .select('name, weight')
             .eq('group_id', g.id);
 
@@ -182,7 +182,7 @@ export default function Groups() {
           let tasks = templates || [];
           if (tasks.length === 0) {
             const { data: defaultTemplates } = await supabase
-              .from('challenge_templates')
+              .from('challenges')
               .select('name, weight')
               .eq('is_default', true);
             tasks = defaultTemplates || [];
@@ -305,13 +305,13 @@ export default function Groups() {
                 .from('daily_tasks')
                 .select(`
                   completed,
-                  challenge_templates (weight)
+                  challenges (weight)
                 `)
                 .eq('user_challenge_id', challenge.id)
                 .eq('completed', true);
 
               if (tasks) {
-                points = tasks.reduce((sum: number, t: any) => sum + (t.challenge_templates?.weight || 0), 0);
+                points = tasks.reduce((sum: number, t: any) => sum + (t.challenges?.weight || 0), 0);
               }
             }
 
