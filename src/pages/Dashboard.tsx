@@ -476,6 +476,11 @@ export default function Dashboard() {
           
           <nav className="flex items-center gap-2">
             <Button variant="ghost" size="icon" asChild>
+              <Link to="/achievements">
+                <Trophy className="w-5 h-5" />
+              </Link>
+            </Button>
+            <Button variant="ghost" size="icon" asChild>
               <Link to="/groups">
                 <Users className="w-5 h-5" />
               </Link>
