@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -8,23 +8,34 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ProfileSetupDialog } from '@/components/ProfileSetupDialog';
 import { useToast } from '@/hooks/use-toast';
-import { Flame, Loader2, Mail, Lock } from 'lucide-react';
+import { Flame, Loader2, Mail, Lock, ArrowLeft } from 'lucide-react';
+
+type AuthMode = 'signin' | 'signup' | 'forgot' | 'reset';
 
 export default function Auth() {
+  const [searchParams] = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isSignUp, setIsSignUp] = useState(false);
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [mode, setMode] = useState<AuthMode>('signin');
   const [loading, setLoading] = useState(false);
   const [showProfileSetup, setShowProfileSetup] = useState(false);
   const { signInWithEmail, signUpWithEmail, user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  // Check if user arrived via password reset link
   useEffect(() => {
-    if (user && !showProfileSetup) {
+    if (searchParams.get('reset') === 'true') {
+      setMode('reset');
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (user && !showProfileSetup && mode !== 'reset') {
       checkProfileComplete();
     }
-  }, [user, showProfileSetup]);
+  }, [user, showProfileSetup, mode]);
 
   const checkProfileComplete = async () => {
     if (!user) return;
@@ -56,6 +67,16 @@ export default function Auth() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (mode === 'forgot') {
+      await handleForgotPassword();
+      return;
+    }
+
+    if (mode === 'reset') {
+      await handleResetPassword();
+      return;
+    }
+
     if (!email || !password) {
       toast({
         title: "Error",
@@ -76,7 +97,7 @@ export default function Auth() {
 
     setLoading(true);
     try {
-      if (isSignUp) {
+      if (mode === 'signup') {
         const { error } = await signUpWithEmail(email, password);
         if (error) {
           if (error.message.includes('already registered')) {
@@ -119,9 +140,108 @@ export default function Auth() {
     }
   };
 
+  const handleForgotPassword = async () => {
+    if (!email) {
+      toast({
+        title: "Error",
+        description: "Please enter your email",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await supabase.functions.invoke('send-password-reset', {
+        body: { email }
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+
+      toast({
+        title: "Check your email",
+        description: "If an account exists with this email, you will receive a reset link.",
+      });
+      setMode('signin');
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: (err as Error).message,
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!password || !confirmPassword) {
+      toast({
+        title: "Error",
+        description: "Please enter and confirm your new password",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (password.length < 6) {
+      toast({
+        title: "Error",
+        description: "Password must be at least 6 characters",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      toast({
+        title: "Error",
+        description: "Passwords do not match",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password });
+      
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Success",
+        description: "Your password has been reset successfully!",
+      });
+      
+      // Clear the reset param and redirect
+      navigate('/dashboard');
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: (err as Error).message,
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleProfileComplete = () => {
     setShowProfileSetup(false);
     navigate('/dashboard');
+  };
+
+  const getTitle = () => {
+    switch (mode) {
+      case 'signup': return 'Create Account';
+      case 'forgot': return 'Forgot Password';
+      case 'reset': return 'Reset Password';
+      default: return 'Welcome Back';
+    }
   };
 
   if (authLoading) {
@@ -152,39 +272,76 @@ export default function Auth() {
 
         <div className="glass rounded-2xl p-8">
           <h2 className="text-xl font-semibold text-center mb-6">
-            {isSignUp ? 'Create Account' : 'Welcome Back'}
+            {getTitle()}
           </h2>
           
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="pl-10"
-                />
+            {mode !== 'reset' && (
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
               </div>
-            </div>
+            )}
             
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10"
-                />
+            {(mode === 'signin' || mode === 'signup') && (
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
               </div>
-            </div>
+            )}
+
+            {mode === 'reset' && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="password">New Password</Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      id="password"
+                      type="password"
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword">Confirm Password</Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      id="confirmPassword"
+                      type="password"
+                      placeholder="••••••••"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+              </>
+            )}
 
             <Button 
               type="submit"
@@ -193,20 +350,56 @@ export default function Auth() {
             >
               {loading ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
+              ) : mode === 'signup' ? (
+                'Sign Up'
+              ) : mode === 'forgot' ? (
+                'Send Reset Link'
+              ) : mode === 'reset' ? (
+                'Reset Password'
               ) : (
-                isSignUp ? 'Sign Up' : 'Sign In'
+                'Sign In'
               )}
             </Button>
           </form>
 
-          <div className="mt-6 text-center">
-            <button
-              type="button"
-              onClick={() => setIsSignUp(!isSignUp)}
-              className="text-sm text-primary hover:underline"
-            >
-              {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
-            </button>
+          <div className="mt-6 text-center space-y-2">
+            {mode === 'signin' && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setMode('forgot')}
+                  className="text-sm text-muted-foreground hover:text-primary hover:underline block w-full"
+                >
+                  Forgot password?
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMode('signup')}
+                  className="text-sm text-primary hover:underline block w-full"
+                >
+                  Don't have an account? Sign up
+                </button>
+              </>
+            )}
+            {mode === 'signup' && (
+              <button
+                type="button"
+                onClick={() => setMode('signin')}
+                className="text-sm text-primary hover:underline"
+              >
+                Already have an account? Sign in
+              </button>
+            )}
+            {(mode === 'forgot' || mode === 'reset') && (
+              <button
+                type="button"
+                onClick={() => setMode('signin')}
+                className="text-sm text-primary hover:underline inline-flex items-center gap-1"
+              >
+                <ArrowLeft className="w-3 h-3" />
+                Back to sign in
+              </button>
+            )}
           </div>
 
           <p className="text-center text-sm text-muted-foreground mt-6">

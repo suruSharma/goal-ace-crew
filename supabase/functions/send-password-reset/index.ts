@@ -10,7 +10,7 @@ const corsHeaders = {
 };
 
 interface PasswordResetRequest {
-  username: string;
+  email: string;
 }
 
 serve(async (req: Request): Promise<Response> => {
@@ -20,17 +20,27 @@ serve(async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { username }: PasswordResetRequest = await req.json();
+    const { email }: PasswordResetRequest = await req.json();
     
-    if (!username) {
-      console.error("Missing username in request");
+    if (!email) {
+      console.error("Missing email in request");
       return new Response(
-        JSON.stringify({ error: "Username is required" }),
+        JSON.stringify({ error: "Email is required" }),
         { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
-    console.log(`Password reset requested for username: ${username}`);
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      console.error("Invalid email format:", email);
+      return new Response(
+        JSON.stringify({ error: "Invalid email format" }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    console.log(`Password reset requested for email: ${email}`);
 
     // Create Supabase admin client
     const supabaseAdmin = createClient(
@@ -39,10 +49,7 @@ serve(async (req: Request): Promise<Response> => {
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
-    // Convert username to fake email
-    const fakeEmail = `${username.toLowerCase()}@75hard.app`;
-
-    // Look up user by fake email
+    // Look up user by email
     const { data: { users }, error: userError } = await supabaseAdmin.auth.admin.listUsers();
     
     if (userError) {
@@ -50,43 +57,30 @@ serve(async (req: Request): Promise<Response> => {
       throw userError;
     }
 
-    const user = users.find(u => u.email === fakeEmail);
+    const user = users.find(u => u.email?.toLowerCase() === email.toLowerCase());
     
     if (!user) {
-      console.log(`No user found for username: ${username}`);
+      console.log(`No user found for email: ${email}`);
       // Return success even if user not found (security best practice)
       return new Response(
-        JSON.stringify({ success: true, message: "If an account exists with this username and has a recovery email, you will receive a reset link." }),
+        JSON.stringify({ success: true, message: "If an account exists with this email, you will receive a reset link." }),
         { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
-    // Get the user's profile to find recovery email
-    const { data: profile, error: profileError } = await supabaseAdmin
+    // Get the user's profile to find their name
+    const { data: profile } = await supabaseAdmin
       .from('profiles')
-      .select('recovery_email, full_name')
+      .select('full_name')
       .eq('id', user.id)
       .maybeSingle();
 
-    if (profileError) {
-      console.error("Error fetching profile:", profileError);
-      throw profileError;
-    }
-
-    if (!profile?.recovery_email) {
-      console.log(`No recovery email set for username: ${username}`);
-      return new Response(
-        JSON.stringify({ success: true, message: "If an account exists with this username and has a recovery email, you will receive a reset link." }),
-        { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
-    }
-
-    console.log(`Found recovery email for user ${username}, generating reset link`);
+    console.log(`Found user, generating reset link`);
 
     // Generate password reset link
     const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
       type: 'recovery',
-      email: fakeEmail,
+      email: user.email!,
       options: {
         redirectTo: `${req.headers.get('origin')}/auth?reset=true`,
       }
@@ -109,7 +103,7 @@ serve(async (req: Request): Promise<Response> => {
     // Send email via Resend
     const emailResponse = await resend.emails.send({
       from: "75 Hard <onboarding@resend.dev>",
-      to: [profile.recovery_email],
+      to: [email],
       subject: "Reset your 75 Hard password",
       html: `
         <!DOCTYPE html>
@@ -125,7 +119,7 @@ serve(async (req: Request): Promise<Response> => {
             </div>
             <h2 style="margin: 0 0 16px; font-size: 20px; color: #f1f5f9;">Reset your password</h2>
             <p style="margin: 0 0 24px; color: #94a3b8; line-height: 1.6;">
-              Hey ${profile.full_name || username}! You requested a password reset for your 75 Hard account.
+              Hey ${profile?.full_name || 'there'}! You requested a password reset for your 75 Hard account.
             </p>
             <a href="${resetLink}" style="display: block; background: linear-gradient(135deg, #10b981, #059669); color: white; text-decoration: none; padding: 14px 24px; border-radius: 8px; text-align: center; font-weight: 600; margin-bottom: 24px;">
               Reset Password
@@ -142,7 +136,7 @@ serve(async (req: Request): Promise<Response> => {
     console.log("Email sent successfully:", emailResponse);
 
     return new Response(
-      JSON.stringify({ success: true, message: "If an account exists with this username and has a recovery email, you will receive a reset link." }),
+      JSON.stringify({ success: true, message: "If an account exists with this email, you will receive a reset link." }),
       { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
   } catch (error: any) {
