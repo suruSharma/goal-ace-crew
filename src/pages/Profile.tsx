@@ -10,7 +10,8 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { ArrowLeft, Save, Loader2, User, Scale, Target, CalendarIcon, Trash2, Ruler, Plus, Camera, Users, AlertTriangle, Heart, Mail } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, User, Scale, Target, CalendarIcon, Trash2, Ruler, Plus, Camera, Users, AlertTriangle, Heart, Mail, Palette } from 'lucide-react';
+import { ThemeSettings } from '@/components/ThemeSettings';
 import { WeightProgressChart } from '@/components/WeightProgressChart';
 import { FavoriteQuotes } from '@/components/FavoriteQuotes';
 import { SimpleLoadingSkeleton } from '@/components/PageLoadingSkeleton';
@@ -837,10 +838,22 @@ export default function Profile() {
           <FavoriteQuotes userId={user!.id} />
         </div>
 
+        {/* Theme Settings Section */}
+        <div
+          className="bg-card rounded-2xl border border-border p-6 animate-fade-in"
+          style={{ animationDelay: '0.2s' }}
+        >
+          <h3 className="font-display font-bold text-lg flex items-center gap-2 mb-4">
+            <Palette className="w-5 h-5 text-primary" />
+            Appearance
+          </h3>
+          <ThemeSettings />
+        </div>
+
         {/* Danger Zone */}
         <div
           className="bg-card rounded-2xl border border-destructive/30 p-6 animate-fade-in"
-          style={{ animationDelay: '0.2s' }}
+          style={{ animationDelay: '0.25s' }}
         >
           <h3 className="font-display font-bold text-lg text-destructive mb-2">Danger Zone</h3>
           <p className="text-sm text-muted-foreground mb-4">
