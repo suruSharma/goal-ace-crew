@@ -194,6 +194,23 @@ export default function Groups() {
     }
   };
 
+  const checkGroupLimit = async (): Promise<boolean> => {
+    const { count } = await supabase
+      .from('group_members')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user!.id);
+    
+    if (count && count >= 3) {
+      toast({
+        title: "Group limit reached",
+        description: "You can only be a member of up to 3 groups",
+        variant: "destructive"
+      });
+      return false;
+    }
+    return true;
+  };
+
   const joinGroupById = async (groupId: string) => {
     setJoining(true);
     try {
@@ -211,6 +228,11 @@ export default function Groups() {
           description: "You are already a member of this group",
           variant: "destructive"
         });
+        return;
+      }
+
+      // Check 3-group limit
+      if (!(await checkGroupLimit())) {
         return;
       }
 
@@ -323,6 +345,11 @@ export default function Groups() {
     setCreating(true);
 
     try {
+      // Check 3-group limit before creating
+      if (!(await checkGroupLimit())) {
+        setCreating(false);
+        return;
+      }
       const { data: group, error: groupError } = await supabase
         .from('groups')
         .insert({
@@ -373,6 +400,12 @@ export default function Groups() {
     setJoining(true);
 
     try {
+      // Check 3-group limit
+      if (!(await checkGroupLimit())) {
+        setJoining(false);
+        return;
+      }
+
       const { data: group, error: findError } = await supabase
         .from('groups')
         .select('id, name')
