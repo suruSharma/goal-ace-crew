@@ -7,10 +7,11 @@ import { Button } from '@/components/ui/button';
 import { TaskCard } from '@/components/TaskCard';
 import { DayCounter } from '@/components/DayCounter';
 import { ProgressRing } from '@/components/ui/progress-ring';
+import { TaskConfigDialog } from '@/components/TaskConfigDialog';
 import { useToast } from '@/hooks/use-toast';
 import { 
-  Flame, LogOut, Users, Plus, Settings, Trophy, 
-  Calendar, TrendingUp, Loader2 
+  Flame, LogOut, Users, Settings, Trophy, 
+  Calendar, TrendingUp, Loader2, Settings2
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -309,6 +310,16 @@ export default function Dashboard() {
               <Calendar className="w-5 h-5 text-primary" />
               Today's Tasks
             </h2>
+            <TaskConfigDialog
+              userId={user!.id}
+              onSave={fetchData}
+              trigger={
+                <Button variant="ghost" size="sm">
+                  <Settings2 className="w-4 h-4 mr-2" />
+                  Configure
+                </Button>
+              }
+            />
           </div>
           
           <div className="grid gap-3">
