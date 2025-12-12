@@ -835,8 +835,7 @@ export default function Groups() {
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   onClick={() => {
-                    setSelectedGroup(group);
-                    fetchLeaderboard(group.id);
+                    navigate(`/groups/${group.id}`);
                   }}
                   className={`p-4 rounded-xl border cursor-pointer transition-all ${
                     selectedGroup?.id === group.id

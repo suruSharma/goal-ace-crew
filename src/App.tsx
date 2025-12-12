@@ -10,6 +10,7 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
 import Groups from "./pages/Groups";
+import GroupDetails from "./pages/GroupDetails";
 import Achievements from "./pages/Achievements";
 import AchievementLeaderboard from "./pages/AchievementLeaderboard";
 import NotFound from "./pages/NotFound";
@@ -30,6 +31,7 @@ const App = () => (
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/groups" element={<Groups />} />
+              <Route path="/groups/:groupId" element={<GroupDetails />} />
               <Route path="/achievements" element={<Achievements />} />
               <Route path="/achievements/leaderboard" element={<AchievementLeaderboard />} />
               <Route path="*" element={<NotFound />} />
