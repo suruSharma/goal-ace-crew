@@ -451,7 +451,7 @@ export default function Dashboard() {
     }
   };
 
-  const toggleTask = async (taskId: string) => {
+  const toggleTask = async (taskId: string, recalculateStreakFn?: () => Promise<void>) => {
     const task = tasks.find(t => t.id === taskId);
     if (!task) return;
 
@@ -480,6 +480,11 @@ export default function Dashboard() {
         description: error.message,
         variant: "destructive"
       });
+    } else {
+      // Recalculate streak after successful task update
+      if (recalculateStreakFn) {
+        await recalculateStreakFn();
+      }
     }
   };
 
@@ -552,7 +557,7 @@ export default function Dashboard() {
   const isViewingToday = challenge ? viewingDay === challenge.currentDay : true;
   const isChallengeComplete = challenge?.isCompleted || (challenge && challenge.currentDay >= challenge.totalDays && progress === 100);
   
-  const { currentStreak, longestStreak, loading: streakLoading } = useStreak(challenge?.id);
+  const { currentStreak, longestStreak, loading: streakLoading, recalculate: recalculateStreak } = useStreak(challenge?.id);
   
   // Achievements
   const { 
@@ -1003,7 +1008,7 @@ export default function Dashboard() {
                     description={task.description}
                     weight={task.weight}
                     completed={task.completed}
-                    onToggle={() => toggleTask(task.id)}
+                    onToggle={() => toggleTask(task.id, recalculateStreak)}
                   />
                 </motion.div>
               ))}

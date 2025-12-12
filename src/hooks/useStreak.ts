@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface StreakData {
   currentStreak: number;
   longestStreak: number;
   loading: boolean;
+  recalculate: () => Promise<void>;
 }
 
 export function useStreak(challengeId: string | undefined): StreakData {
@@ -12,17 +13,11 @@ export function useStreak(challengeId: string | undefined): StreakData {
   const [longestStreak, setLongestStreak] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const calculateStreak = useCallback(async () => {
     if (!challengeId) {
       setLoading(false);
       return;
     }
-
-    calculateStreak();
-  }, [challengeId]);
-
-  const calculateStreak = async () => {
-    if (!challengeId) return;
     
     setLoading(true);
     try {
@@ -91,7 +86,16 @@ export function useStreak(challengeId: string | undefined): StreakData {
     } finally {
       setLoading(false);
     }
-  };
+  }, [challengeId]);
 
-  return { currentStreak, longestStreak, loading };
+  useEffect(() => {
+    if (!challengeId) {
+      setLoading(false);
+      return;
+    }
+
+    calculateStreak();
+  }, [challengeId, calculateStreak]);
+
+  return { currentStreak, longestStreak, loading, recalculate: calculateStreak };
 }
