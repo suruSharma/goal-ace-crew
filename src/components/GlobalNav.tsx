@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
+import { NotificationCenter } from '@/components/NotificationCenter';
 
 export function GlobalNav() {
   const location = useLocation();
@@ -130,10 +131,13 @@ export function GlobalNav() {
             asChild
             className={cn(isActive('/groups') && 'bg-primary/10 text-primary')}
           >
-            <Link to="/groups">
+          <Link to="/groups">
               <Users className="w-5 h-5" />
             </Link>
           </Button>
+          
+          {user && <NotificationCenter userId={user.id} />}
+          
           <Link to="/profile">
             <div className={cn(
               "w-9 h-9 rounded-full bg-gradient-to-br from-primary to-primary/50 flex items-center justify-center text-primary-foreground font-semibold overflow-hidden cursor-pointer transition-all",

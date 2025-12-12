@@ -154,6 +154,73 @@ export function useFeed(userId: string | undefined) {
     fetchFeed();
   }, [fetchFeed]);
 
+  // Real-time subscription for new posts
+  useEffect(() => {
+    if (!userId) return;
+
+    const channel = supabase
+      .channel('feed-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'feed_posts'
+        },
+        async (payload) => {
+          // Fetch the complete post with profile info
+          const newPostId = payload.new.id;
+          const { data: postData } = await (supabase
+            .from('feed_posts' as any)
+            .select(`
+              id,
+              user_id,
+              post_type,
+              content,
+              message,
+              created_at,
+              profiles!feed_posts_user_id_fkey (
+                id,
+                full_name,
+                avatar_url
+              )
+            `)
+            .eq('id', newPostId)
+            .single() as any);
+
+          if (postData) {
+            const newPost: FeedPost = {
+              id: postData.id,
+              user_id: postData.user_id,
+              post_type: postData.post_type,
+              content: postData.content,
+              message: postData.message,
+              created_at: postData.created_at,
+              user: {
+                id: postData.profiles?.id || postData.user_id,
+                full_name: postData.profiles?.full_name || 'Unknown',
+                avatar_url: postData.profiles?.avatar_url
+              },
+              reactions: [],
+              comments: [],
+              commentCount: 0
+            };
+
+            setPosts(prev => {
+              // Check if post already exists
+              if (prev.some(p => p.id === newPost.id)) return prev;
+              return [newPost, ...prev];
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [userId]);
+
   const addReaction = async (postId: string, emoji: string) => {
     if (!userId) return;
 
