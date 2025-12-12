@@ -5,7 +5,7 @@ import { TaskCard } from '@/components/TaskCard';
 import { TaskCardSkeletonGroup } from '@/components/TaskCardSkeleton';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Users, ChevronDown, ChevronUp, Loader2, Play, Trophy, Target } from 'lucide-react';
+import { Users, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Loader2, Play, Trophy, Target } from 'lucide-react';
 import { differenceInDays, parseISO, startOfDay } from 'date-fns';
 import { Link } from 'react-router-dom';
 import { ProgressRing } from '@/components/ui/progress-ring';
@@ -26,6 +26,7 @@ interface GroupWithChallenge {
   challengeId: string | null;
   startDate: string | null;
   currentDay: number;
+  viewingDay: number;
   tasks: GroupTask[];
   loading: boolean;
   expanded: boolean;
@@ -163,6 +164,7 @@ export function GroupTasksSection({ userId, onTaskToggle }: GroupTasksSectionPro
           challengeId: challenge?.id || null,
           startDate: challenge?.start_date || null,
           currentDay: Math.min(currentDay, g.total_days),
+          viewingDay: Math.min(currentDay, g.total_days),
           tasks: [],
           loading: false,
           expanded: false,
@@ -219,6 +221,7 @@ export function GroupTasksSection({ userId, onTaskToggle }: GroupTasksSectionPro
               challengeId: newChallenge.id, 
               startDate: newChallenge.start_date,
               currentDay: 1,
+              viewingDay: 1,
               isCompleted: false,
               completionShown: false
             }
@@ -342,16 +345,28 @@ export function GroupTasksSection({ userId, onTaskToggle }: GroupTasksSectionPro
     // Fetch tasks when expanding (if challenge exists and tasks not loaded)
     const cId = challengeId || group.challengeId;
     if (newExpanded && cId && group.tasks.length === 0) {
-      await fetchGroupTasks(groupId, cId, group.currentDay);
+      await fetchGroupTasks(groupId, cId, group.viewingDay);
     }
   };
 
+  const goToDay = async (groupId: string, day: number) => {
+    const group = groups.find(g => g.id === groupId);
+    if (!group || !group.challengeId || day < 1 || day > group.currentDay) return;
+
+    setGroups(prev => prev.map(g => 
+      g.id === groupId ? { ...g, viewingDay: day, tasks: [] } : g
+    ));
+
+    await fetchGroupTasks(groupId, group.challengeId, day);
+  };
+
   const checkGroupCompletion = async (group: GroupWithChallenge) => {
-    // Check if all tasks are completed and it's the last day
+    // Check if all tasks are completed and it's the last day AND viewing the current day
     const allTasksCompleted = group.tasks.length > 0 && group.tasks.every(t => t.completed);
     const isFinalDay = group.currentDay >= group.totalDays;
+    const isViewingCurrentDay = group.viewingDay === group.currentDay;
     
-    if (allTasksCompleted && isFinalDay && !group.completionShown && group.challengeId) {
+    if (allTasksCompleted && isFinalDay && isViewingCurrentDay && !group.completionShown && group.challengeId) {
       // Mark completion as shown in DB
       await supabase
         .from('user_challenges')
@@ -506,6 +521,7 @@ export function GroupTasksSection({ userId, onTaskToggle }: GroupTasksSectionPro
             const completedTasks = group.tasks.filter(t => t.completed).length;
             const totalTasks = group.tasks.length;
             const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+            const isViewingCurrentDay = group.viewingDay === group.currentDay;
 
             return (
               <div 
@@ -591,7 +607,60 @@ export function GroupTasksSection({ userId, onTaskToggle }: GroupTasksSectionPro
                       transition={{ duration: 0.2 }}
                       className="border-t border-accent/20"
                     >
-                      <div className="p-4 space-y-2 bg-accent/5">
+                      <div className="p-4 space-y-3 bg-accent/5">
+                        {/* Day Navigation */}
+                        {group.currentDay > 1 && (
+                          <div className="flex items-center justify-between pb-3 border-b border-accent/10">
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7"
+                                disabled={group.viewingDay <= 1 || group.loading}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  goToDay(group.id, group.viewingDay - 1);
+                                }}
+                              >
+                                <ChevronLeft className="w-4 h-4" />
+                              </Button>
+                              <span className="text-sm font-medium min-w-[70px] text-center">
+                                Day {group.viewingDay}
+                              </span>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7"
+                                disabled={group.viewingDay >= group.currentDay || group.loading}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  goToDay(group.id, group.viewingDay + 1);
+                                }}
+                              >
+                                <ChevronRight className="w-4 h-4" />
+                              </Button>
+                              {!isViewingCurrentDay && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="ml-2 text-xs"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    goToDay(group.id, group.currentDay);
+                                  }}
+                                >
+                                  Today
+                                </Button>
+                              )}
+                            </div>
+                            {!isViewingCurrentDay && (
+                              <span className="text-xs text-muted-foreground">
+                                Viewing past day
+                              </span>
+                            )}
+                          </div>
+                        )}
+
                         {group.loading ? (
                           <TaskCardSkeletonGroup count={3} />
                         ) : group.tasks.length > 0 ? (
@@ -618,7 +687,7 @@ export function GroupTasksSection({ userId, onTaskToggle }: GroupTasksSectionPro
                               <motion.div
                                 initial={{ opacity: 0, scale: 0.9 }}
                                 animate={{ opacity: 1, scale: 1 }}
-                                className="mt-4 p-4 rounded-xl bg-accent/10 border border-accent/30 text-center"
+                                className="mt-2 p-4 rounded-xl bg-accent/10 border border-accent/30 text-center"
                               >
                                 <span className="text-2xl mb-1 block">🎉</span>
                                 <h4 className="font-display font-bold text-accent">Day Complete!</h4>

@@ -267,6 +267,7 @@ export default function Groups() {
       setPreviewGroup(null);
       setSearchQuery('');
       setSearchResults([]);
+      setJoinDialogOpen(false);
       fetchGroups();
     } catch (error: any) {
       toast({
