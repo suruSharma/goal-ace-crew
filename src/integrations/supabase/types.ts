@@ -273,6 +273,7 @@ export type Database = {
         Row: {
           avatar_url: string | null
           birthdate: string | null
+          color_theme: string | null
           created_at: string | null
           current_weight: number | null
           email: string | null
@@ -282,12 +283,14 @@ export type Database = {
           height_cm: number | null
           id: string
           recovery_email: string | null
+          theme_mode: string | null
           timezone: string | null
           updated_at: string | null
         }
         Insert: {
           avatar_url?: string | null
           birthdate?: string | null
+          color_theme?: string | null
           created_at?: string | null
           current_weight?: number | null
           email?: string | null
@@ -297,12 +300,14 @@ export type Database = {
           height_cm?: number | null
           id: string
           recovery_email?: string | null
+          theme_mode?: string | null
           timezone?: string | null
           updated_at?: string | null
         }
         Update: {
           avatar_url?: string | null
           birthdate?: string | null
+          color_theme?: string | null
           created_at?: string | null
           current_weight?: number | null
           email?: string | null
@@ -312,6 +317,7 @@ export type Database = {
           height_cm?: number | null
           id?: string
           recovery_email?: string | null
+          theme_mode?: string | null
           timezone?: string | null
           updated_at?: string | null
         }
