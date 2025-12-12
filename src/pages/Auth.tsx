@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ProfileSetupDialog } from '@/components/ProfileSetupDialog';
 import { useToast } from '@/hooks/use-toast';
-import { Flame, ArrowRight, Loader2 } from 'lucide-react';
+import { Flame, ArrowRight, Loader2, ArrowLeft, Mail } from 'lucide-react';
 import { z } from 'zod';
 
 const authSchema = z.object({
@@ -17,12 +17,15 @@ const authSchema = z.object({
   fullName: z.string().min(2, 'Name must be at least 2 characters').optional(),
 });
 
+type AuthMode = 'login' | 'signup' | 'forgot-password' | 'check-email';
+
 export default function Auth() {
-  const [isLogin, setIsLogin] = useState(true);
+  const [mode, setMode] = useState<AuthMode>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
   const [showProfileSetup, setShowProfileSetup] = useState(false);
   const { signIn, signUp, user } = useAuth();
   const { toast } = useToast();
@@ -30,7 +33,6 @@ export default function Auth() {
 
   useEffect(() => {
     if (user && !showProfileSetup) {
-      // Check if profile is complete
       checkProfileComplete();
     }
   }, [user, showProfileSetup]);
@@ -44,7 +46,6 @@ export default function Auth() {
       .eq('id', user.id)
       .maybeSingle();
 
-    // If any required field is missing, show setup dialog
     if (profile && (!profile.birthdate || !profile.current_weight || !profile.goal_weight || !profile.goal_date)) {
       setShowProfileSetup(true);
     } else {
@@ -57,18 +58,39 @@ export default function Auth() {
     setLoading(true);
 
     try {
-      const validationData = isLogin 
+      if (mode === 'forgot-password') {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/auth`,
+        });
+        
+        if (error) {
+          toast({
+            title: "Error",
+            description: error.message,
+            variant: "destructive"
+          });
+        } else {
+          toast({
+            title: "Check your email",
+            description: "We've sent you a password reset link.",
+          });
+          setMode('login');
+        }
+        setLoading(false);
+        return;
+      }
+
+      const validationData = mode === 'login' 
         ? { email, password }
         : { email, password, fullName };
       
       authSchema.parse(validationData);
 
-      const { error, data } = isLogin 
+      const { error, data } = mode === 'login' 
         ? await signIn(email, password)
         : await signUp(email, password, fullName);
 
       if (error) {
-        // Handle specific error cases
         let errorMessage = error.message;
         
         if (error.message.includes('User already registered') || 
@@ -78,6 +100,7 @@ export default function Auth() {
           errorMessage = 'Invalid email or password. Please try again.';
         } else if (error.message.includes('Email not confirmed')) {
           errorMessage = 'Please check your email and confirm your account before signing in.';
+          setMode('check-email');
         }
         
         toast({
@@ -85,18 +108,13 @@ export default function Auth() {
           description: errorMessage,
           variant: "destructive"
         });
-      } else if (!isLogin) {
-        // Check if email confirmation is required
+      } else if (mode === 'signup') {
         if (data?.user && !data?.session) {
+          setMode('check-email');
           toast({
             title: "Check your email!",
             description: "We've sent you a confirmation link. Please verify your email to continue.",
           });
-          // Reset form
-          setEmail('');
-          setPassword('');
-          setFullName('');
-          setIsLogin(true);
         } else {
           toast({
             title: "Account created!",
@@ -118,9 +136,215 @@ export default function Auth() {
     }
   };
 
+  const handleResendConfirmation = async () => {
+    if (!email) {
+      toast({
+        title: "Email required",
+        description: "Please enter your email address.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setResending(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/`,
+        }
+      });
+
+      if (error) {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Email sent!",
+          description: "We've resent the confirmation link to your email.",
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setResending(false);
+    }
+  };
+
   const handleProfileComplete = () => {
     setShowProfileSetup(false);
     navigate('/dashboard');
+  };
+
+  const renderForm = () => {
+    if (mode === 'check-email') {
+      return (
+        <div className="text-center space-y-6">
+          <div className="w-16 h-16 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
+            <Mail className="w-8 h-8 text-primary" />
+          </div>
+          <div>
+            <h2 className="text-xl font-semibold mb-2">Check your email</h2>
+            <p className="text-muted-foreground text-sm">
+              We've sent a confirmation link to <strong>{email}</strong>
+            </p>
+          </div>
+          <div className="space-y-3">
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={handleResendConfirmation}
+              disabled={resending}
+            >
+              {resending ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              ) : (
+                <Mail className="w-4 h-4 mr-2" />
+              )}
+              Resend confirmation email
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full"
+              onClick={() => {
+                setMode('login');
+                setEmail('');
+                setPassword('');
+              }}
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to sign in
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
+    if (mode === 'forgot-password') {
+      return (
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="text-center mb-4">
+            <h2 className="text-xl font-semibold">Reset your password</h2>
+            <p className="text-muted-foreground text-sm mt-1">
+              Enter your email and we'll send you a reset link
+            </p>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              className="bg-secondary/50"
+            />
+          </div>
+
+          <Button 
+            type="submit" 
+            className="w-full h-12 font-semibold"
+            disabled={loading}
+          >
+            {loading ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <>
+                Send reset link
+                <ArrowRight className="w-5 h-5 ml-2" />
+              </>
+            )}
+          </Button>
+
+          <Button
+            type="button"
+            variant="ghost"
+            className="w-full"
+            onClick={() => setMode('login')}
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to sign in
+          </Button>
+        </form>
+      );
+    }
+
+    return (
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {mode === 'signup' && (
+          <div className="space-y-2">
+            <Label htmlFor="fullName">Full Name</Label>
+            <Input
+              id="fullName"
+              type="text"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              placeholder="Your name"
+              className="bg-secondary/50"
+            />
+          </div>
+        )}
+        
+        <div className="space-y-2">
+          <Label htmlFor="email">Email</Label>
+          <Input
+            id="email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@example.com"
+            className="bg-secondary/50"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="password">Password</Label>
+            {mode === 'login' && (
+              <button
+                type="button"
+                onClick={() => setMode('forgot-password')}
+                className="text-xs text-primary hover:underline"
+              >
+                Forgot password?
+              </button>
+            )}
+          </div>
+          <Input
+            id="password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="••••••••"
+            className="bg-secondary/50"
+          />
+        </div>
+
+        <Button 
+          type="submit" 
+          className="w-full mt-6 h-12 font-semibold"
+          disabled={loading}
+        >
+          {loading ? (
+            <Loader2 className="w-5 h-5 animate-spin" />
+          ) : (
+            <>
+              {mode === 'login' ? 'Sign In' : 'Create Account'}
+              <ArrowRight className="w-5 h-5 ml-2" />
+            </>
+          )}
+        </Button>
+      </form>
+    );
   };
 
   return (
@@ -137,79 +361,30 @@ export default function Auth() {
           </div>
           <h1 className="text-3xl font-display font-bold">75 Hard</h1>
           <p className="text-muted-foreground mt-2">
-            {isLogin ? 'Welcome back, warrior!' : 'Start your transformation'}
+            {mode === 'login' && 'Welcome back, warrior!'}
+            {mode === 'signup' && 'Start your transformation'}
+            {mode === 'forgot-password' && 'Reset your password'}
+            {mode === 'check-email' && 'Almost there!'}
           </p>
         </div>
 
         <div className="glass rounded-2xl p-8">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {!isLogin && (
-              <div className="space-y-2">
-                <Label htmlFor="fullName">Full Name</Label>
-                <Input
-                  id="fullName"
-                  type="text"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Your name"
-                  className="bg-secondary/50"
-                />
-              </div>
-            )}
-            
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                className="bg-secondary/50"
-              />
+          {renderForm()}
+
+          {(mode === 'login' || mode === 'signup') && (
+            <div className="mt-6 text-center">
+              <button
+                type="button"
+                onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}
+                className="text-sm text-muted-foreground hover:text-primary transition-colors"
+              >
+                {mode === 'login' ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
+              </button>
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="bg-secondary/50"
-              />
-            </div>
-
-            <Button 
-              type="submit" 
-              className="w-full mt-6 h-12 font-semibold"
-              disabled={loading}
-            >
-              {loading ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : (
-                <>
-                  {isLogin ? 'Sign In' : 'Create Account'}
-                  <ArrowRight className="w-5 h-5 ml-2" />
-                </>
-              )}
-            </Button>
-          </form>
-
-          <div className="mt-6 text-center">
-            <button
-              type="button"
-              onClick={() => setIsLogin(!isLogin)}
-              className="text-sm text-muted-foreground hover:text-primary transition-colors"
-            >
-              {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
-            </button>
-          </div>
+          )}
         </div>
       </motion.div>
 
-      {/* Profile Setup Dialog */}
       {user && (
         <ProfileSetupDialog
           open={showProfileSetup}
