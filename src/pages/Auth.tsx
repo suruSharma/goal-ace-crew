@@ -8,26 +8,28 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ProfileSetupDialog } from '@/components/ProfileSetupDialog';
 import { useToast } from '@/hooks/use-toast';
-import { Flame, ArrowRight, Loader2, ArrowLeft, Mail } from 'lucide-react';
+import { Flame, ArrowRight, Loader2 } from 'lucide-react';
 import { z } from 'zod';
 
 const authSchema = z.object({
-  email: z.string().email('Invalid email address'),
+  username: z.string().min(3, 'Username must be at least 3 characters').max(20, 'Username must be less than 20 characters').regex(/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
 });
 
-type AuthMode = 'login' | 'signup' | 'forgot-password' | 'check-email';
+type AuthMode = 'login' | 'signup';
 
 export default function Auth() {
   const [mode, setMode] = useState<AuthMode>('login');
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [resending, setResending] = useState(false);
   const [showProfileSetup, setShowProfileSetup] = useState(false);
   const { signIn, signUp, user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // Convert username to fake email for Supabase Auth
+  const usernameToEmail = (uname: string) => `${uname.toLowerCase()}@75hard.app`;
 
   useEffect(() => {
     if (user && !showProfileSetup) {
@@ -66,32 +68,10 @@ export default function Auth() {
     setLoading(true);
 
     try {
-      if (mode === 'forgot-password') {
-        const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/reset-password`,
-        });
-        
-        if (error) {
-          toast({
-            title: "Error",
-            description: error.message,
-            variant: "destructive"
-          });
-        } else {
-          toast({
-            title: "Check your email",
-            description: "We've sent you a password reset link.",
-          });
-          setMode('login');
-        }
-        setLoading(false);
-        return;
-      }
-
-      const validationData = { email, password };
-      
+      const validationData = { username, password };
       authSchema.parse(validationData);
 
+      const email = usernameToEmail(username);
       const { error, data } = mode === 'login' 
         ? await signIn(email, password)
         : await signUp(email, password);
@@ -101,12 +81,9 @@ export default function Auth() {
         
         if (error.message.includes('User already registered') || 
             error.message.includes('already been registered')) {
-          errorMessage = 'An account with this email already exists. Please sign in instead.';
+          errorMessage = 'This username is already taken. Please choose another or sign in.';
         } else if (error.message.includes('Invalid login credentials')) {
-          errorMessage = 'Invalid email or password. Please try again.';
-        } else if (error.message.includes('Email not confirmed')) {
-          errorMessage = 'Please check your email and confirm your account before signing in.';
-          setMode('check-email');
+          errorMessage = 'Invalid username or password. Please try again.';
         }
         
         toast({
@@ -116,11 +93,13 @@ export default function Auth() {
         });
       } else if (mode === 'signup') {
         if (data?.user && !data?.session) {
-          setMode('check-email');
+          // Auto-confirm is disabled, but since we're using fake emails, 
+          // we should have auto-confirm enabled in Supabase
           toast({
-            title: "Check your email!",
-            description: "We've sent you a confirmation link. Please verify your email to continue.",
+            title: "Account created!",
+            description: "Welcome to 75 Hard. Let's set up your profile!"
           });
+          setShowProfileSetup(true);
         } else {
           toast({
             title: "Account created!",
@@ -142,176 +121,30 @@ export default function Auth() {
     }
   };
 
-  const handleResendConfirmation = async () => {
-    if (!email) {
-      toast({
-        title: "Email required",
-        description: "Please enter your email address.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setResending(true);
-    try {
-      const { error } = await supabase.auth.resend({
-        type: 'signup',
-        email,
-        options: {
-          emailRedirectTo: `${window.location.origin}/`,
-        }
-      });
-
-      if (error) {
-        toast({
-          title: "Error",
-          description: error.message,
-          variant: "destructive"
-        });
-      } else {
-        toast({
-          title: "Email sent!",
-          description: "We've resent the confirmation link to your email.",
-        });
-      }
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive"
-      });
-    } finally {
-      setResending(false);
-    }
-  };
-
   const handleProfileComplete = () => {
     setShowProfileSetup(false);
     navigate('/dashboard');
   };
 
   const renderForm = () => {
-    if (mode === 'check-email') {
-      return (
-        <div className="text-center space-y-6">
-          <div className="w-16 h-16 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
-            <Mail className="w-8 h-8 text-primary" />
-          </div>
-          <div>
-            <h2 className="text-xl font-semibold mb-2">Check your email</h2>
-            <p className="text-muted-foreground text-sm">
-              We've sent a confirmation link to <strong>{email}</strong>
-            </p>
-          </div>
-          <div className="space-y-3">
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={handleResendConfirmation}
-              disabled={resending}
-            >
-              {resending ? (
-                <Loader2 className="w-4 h-4 animate-spin mr-2" />
-              ) : (
-                <Mail className="w-4 h-4 mr-2" />
-              )}
-              Resend confirmation email
-            </Button>
-            <Button
-              variant="ghost"
-              className="w-full"
-              onClick={() => {
-                setMode('login');
-                setEmail('');
-                setPassword('');
-              }}
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to sign in
-            </Button>
-          </div>
-        </div>
-      );
-    }
-
-    if (mode === 'forgot-password') {
-      return (
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="text-center mb-4">
-            <h2 className="text-xl font-semibold">Reset your password</h2>
-            <p className="text-muted-foreground text-sm mt-1">
-              Enter your email and we'll send you a reset link
-            </p>
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              className="bg-secondary/50"
-            />
-          </div>
-
-          <Button 
-            type="submit" 
-            className="w-full h-12 font-semibold"
-            disabled={loading}
-          >
-            {loading ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            ) : (
-              <>
-                Send reset link
-                <ArrowRight className="w-5 h-5 ml-2" />
-              </>
-            )}
-          </Button>
-
-          <Button
-            type="button"
-            variant="ghost"
-            className="w-full"
-            onClick={() => setMode('login')}
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to sign in
-          </Button>
-        </form>
-      );
-    }
-
     return (
       <form onSubmit={handleSubmit} className="space-y-4">
         
         <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
+          <Label htmlFor="username">Username</Label>
           <Input
-            id="email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@example.com"
+            id="username"
+            type="text"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            placeholder="your_username"
             className="bg-secondary/50"
+            autoComplete="username"
           />
         </div>
 
         <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="password">Password</Label>
-            {mode === 'login' && (
-              <button
-                type="button"
-                onClick={() => setMode('forgot-password')}
-                className="text-xs text-primary hover:underline"
-              >
-                Forgot password?
-              </button>
-            )}
-          </div>
+          <Label htmlFor="password">Password</Label>
           <Input
             id="password"
             type="password"
@@ -319,6 +152,7 @@ export default function Auth() {
             onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••"
             className="bg-secondary/50"
+            autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
           />
         </div>
 
@@ -356,8 +190,6 @@ export default function Auth() {
           <p className="text-muted-foreground mt-2">
             {mode === 'login' && 'Welcome back, warrior!'}
             {mode === 'signup' && 'Start your transformation'}
-            {mode === 'forgot-password' && 'Reset your password'}
-            {mode === 'check-email' && 'Almost there!'}
           </p>
         </div>
 
