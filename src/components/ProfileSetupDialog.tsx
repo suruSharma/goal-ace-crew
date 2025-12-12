@@ -27,6 +27,8 @@ interface ProfileSetupDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   userId: string;
+  userEmail: string;
+  userName?: string;
   onComplete: () => void;
 }
 
@@ -34,6 +36,8 @@ export function ProfileSetupDialog({
   open, 
   onOpenChange, 
   userId,
+  userEmail,
+  userName,
   onComplete 
 }: ProfileSetupDialogProps) {
   const { toast } = useToast();
@@ -113,9 +117,20 @@ export function ProfileSetupDialog({
           });
       }
 
+      // Send welcome email
+      try {
+        await supabase.functions.invoke('send-welcome-email', {
+          body: { email: userEmail, name: userName || 'Warrior' }
+        });
+        console.log('Welcome email sent');
+      } catch (emailError) {
+        console.error('Failed to send welcome email:', emailError);
+        // Don't block profile completion if email fails
+      }
+
       toast({
         title: "Profile updated!",
-        description: "Your goals have been saved. Let's crush it!"
+        description: "Your goals have been saved. Check your email for a welcome message!"
       });
 
       onComplete();

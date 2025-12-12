@@ -390,6 +390,8 @@ export default function Auth() {
           open={showProfileSetup}
           onOpenChange={setShowProfileSetup}
           userId={user.id}
+          userEmail={user.email || ''}
+          userName={user.user_metadata?.full_name}
           onComplete={handleProfileComplete}
         />
       )}
