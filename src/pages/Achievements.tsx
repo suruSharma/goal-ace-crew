@@ -12,7 +12,7 @@ import { Progress } from '@/components/ui/progress';
 import { PageLoadingSkeleton } from '@/components/PageLoadingSkeleton';
 import { 
   Flame, ArrowLeft, Trophy, Lock, Unlock, 
-  Filter, Zap, Target, Star, Award
+  Filter, Zap, Target, Star, Award, Users
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -170,9 +170,17 @@ export default function Achievements() {
             </div>
           </div>
           
-          <Badge variant="secondary" className="text-sm">
-            {unlockedIds.size} / {achievements.length} Unlocked
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/achievements/leaderboard" className="gap-2">
+                <Users className="w-4 h-4" />
+                Leaderboard
+              </Link>
+            </Button>
+            <Badge variant="secondary" className="text-sm">
+              {unlockedIds.size} / {achievements.length}
+            </Badge>
+          </div>
         </div>
       </header>
 

@@ -494,6 +494,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_achievement_leaderboard: {
+        Args: { time_period?: string }
+        Returns: {
+          achievement_count: number
+          avatar_url: string
+          display_name: string
+          total_points: number
+          user_id: string
+        }[]
+      }
       is_group_member: {
         Args: { _group_id: string; _user_id: string }
         Returns: boolean
