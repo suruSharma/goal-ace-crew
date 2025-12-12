@@ -581,16 +581,30 @@ export default function Dashboard() {
     }
   }, [currentStreak, longestStreak, totalChallengePoints, totalCompletedTasks, isChallengeComplete]);
 
-  // Check for challenge completion when all tasks are done on final day (mark as complete but don't show popup)
+  // Check for challenge completion when all tasks are done on final day - show popup ONLY on first completion
   useEffect(() => {
     const markChallengeComplete = async () => {
       if (challenge && !challenge.isCompleted && challenge.currentDay >= challenge.totalDays && progress === 100 && isViewingToday) {
-        setChallenge(prev => prev ? { ...prev, isCompleted: true } : null);
-        // Mark completion as shown in DB
-        await supabase
+        // Check if completion was already shown before
+        const { data } = await supabase
           .from('user_challenges')
-          .update({ completion_shown: true })
-          .eq('id', challenge.id);
+          .select('completion_shown')
+          .eq('id', challenge.id)
+          .single();
+        
+        const wasAlreadyShown = data?.completion_shown === true;
+        
+        setChallenge(prev => prev ? { ...prev, isCompleted: true } : null);
+        
+        // Only show popup if it hasn't been shown before
+        if (!wasAlreadyShown) {
+          setShowCompletion(true);
+          // Mark completion as shown in DB
+          await supabase
+            .from('user_challenges')
+            .update({ completion_shown: true })
+            .eq('id', challenge.id);
+        }
       }
     };
     markChallengeComplete();
