@@ -188,6 +188,7 @@ export type Database = {
           full_name: string | null
           goal_weight: number | null
           id: string
+          timezone: string | null
           updated_at: string | null
         }
         Insert: {
@@ -199,6 +200,7 @@ export type Database = {
           full_name?: string | null
           goal_weight?: number | null
           id: string
+          timezone?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -210,6 +212,7 @@ export type Database = {
           full_name?: string | null
           goal_weight?: number | null
           id?: string
+          timezone?: string | null
           updated_at?: string | null
         }
         Relationships: []

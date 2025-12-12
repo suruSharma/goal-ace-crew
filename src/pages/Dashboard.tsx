@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
@@ -13,9 +13,11 @@ import { MotivationalQuote } from '@/components/MotivationalQuote';
 import { useToast } from '@/hooks/use-toast';
 import { 
   Flame, LogOut, Users, Settings, Trophy, 
-  Calendar, TrendingUp, Loader2, Settings2, Rocket
+  Calendar, TrendingUp, Loader2, Settings2, Rocket,
+  ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { differenceInDays, parseISO, startOfDay } from 'date-fns';
 
 interface Task {
   id: string;
@@ -33,6 +35,13 @@ interface Challenge {
   startDate: string;
 }
 
+// Calculate which day of the challenge it is based on start date
+const calculateCurrentDay = (startDate: string): number => {
+  const start = startOfDay(parseISO(startDate));
+  const today = startOfDay(new Date());
+  return differenceInDays(today, start) + 1;
+};
+
 export default function Dashboard() {
   const { user, signOut, loading: authLoading } = useAuth();
   const navigate = useNavigate();
@@ -42,6 +51,8 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [profileName, setProfileName] = useState('');
   const [showSetup, setShowSetup] = useState(false);
+  const [viewingDay, setViewingDay] = useState<number>(1);
+  const [tasksLoading, setTasksLoading] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -52,8 +63,18 @@ export default function Dashboard() {
   useEffect(() => {
     if (user) {
       fetchData();
+      // Save user's timezone
+      saveTimezone();
     }
   }, [user]);
+
+  const saveTimezone = async () => {
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    await supabase
+      .from('profiles')
+      .update({ timezone })
+      .eq('id', user!.id);
+  };
 
   const fetchData = async () => {
     try {
@@ -83,15 +104,29 @@ export default function Dashboard() {
         return;
       }
 
+      // Calculate current day based on start date (automatic day advancement)
+      const calculatedDay = calculateCurrentDay(existingChallenge.start_date);
+      const actualCurrentDay = Math.min(Math.max(1, calculatedDay), existingChallenge.total_days || 75);
+
+      // Update current_day in DB if it changed
+      if (existingChallenge.current_day !== actualCurrentDay) {
+        await supabase
+          .from('user_challenges')
+          .update({ current_day: actualCurrentDay })
+          .eq('id', existingChallenge.id);
+      }
+
       setChallenge({
         id: existingChallenge.id,
-        currentDay: existingChallenge.current_day,
+        currentDay: actualCurrentDay,
         totalDays: existingChallenge.total_days || 75,
         startDate: existingChallenge.start_date
       });
 
-      // Fetch today's tasks
-      await fetchTasks(existingChallenge.id, existingChallenge.current_day);
+      setViewingDay(actualCurrentDay);
+
+      // Fetch tasks for current day
+      await fetchOrCreateTasks(existingChallenge.id, actualCurrentDay);
     } catch (error: any) {
       toast({
         title: "Error loading data",
@@ -103,37 +138,103 @@ export default function Dashboard() {
     }
   };
 
-  const fetchTasks = async (challengeId: string, dayNumber: number) => {
-    const { data: dailyTasks } = await supabase
-      .from('daily_tasks')
-      .select(`
-        id,
-        completed,
-        template_id,
-        challenge_templates (
+  const fetchOrCreateTasks = useCallback(async (challengeId: string, dayNumber: number) => {
+    setTasksLoading(true);
+    try {
+      // First try to fetch existing tasks
+      let { data: dailyTasks } = await supabase
+        .from('daily_tasks')
+        .select(`
           id,
-          name,
-          description,
-          weight
-        )
-      `)
-      .eq('user_challenge_id', challengeId)
-      .eq('day_number', dayNumber);
+          completed,
+          template_id,
+          challenge_templates (
+            id,
+            name,
+            description,
+            weight
+          )
+        `)
+        .eq('user_challenge_id', challengeId)
+        .eq('day_number', dayNumber);
 
-    if (dailyTasks) {
-      const formattedTasks = dailyTasks.map((t: any) => ({
-        id: t.id,
-        templateId: t.template_id,
-        name: t.challenge_templates.name,
-        description: t.challenge_templates.description,
-        weight: t.challenge_templates.weight,
-        completed: t.completed
-      }));
-      setTasks(formattedTasks);
+      // If no tasks exist for this day, create them
+      if (!dailyTasks || dailyTasks.length === 0) {
+        // Get templates - first check for user's custom templates, then defaults
+        const { data: challenge } = await supabase
+          .from('user_challenges')
+          .select('user_id')
+          .eq('id', challengeId)
+          .single();
+
+        if (challenge) {
+          // Try to get user's custom templates first
+          let { data: templates } = await supabase
+            .from('challenge_templates')
+            .select('*')
+            .eq('created_by', challenge.user_id)
+            .is('group_id', null);
+
+          // Fall back to defaults if no custom templates
+          if (!templates || templates.length === 0) {
+            const { data: defaultTemplates } = await supabase
+              .from('challenge_templates')
+              .select('*')
+              .eq('is_default', true);
+            templates = defaultTemplates;
+          }
+
+          if (templates && templates.length > 0) {
+            const newTasks = templates.map(t => ({
+              user_challenge_id: challengeId,
+              template_id: t.id,
+              day_number: dayNumber,
+              completed: false
+            }));
+
+            await supabase.from('daily_tasks').insert(newTasks);
+
+            // Fetch the newly created tasks
+            const { data: createdTasks } = await supabase
+              .from('daily_tasks')
+              .select(`
+                id,
+                completed,
+                template_id,
+                challenge_templates (
+                  id,
+                  name,
+                  description,
+                  weight
+                )
+              `)
+              .eq('user_challenge_id', challengeId)
+              .eq('day_number', dayNumber);
+
+            dailyTasks = createdTasks;
+          }
+        }
+      }
+
+      if (dailyTasks) {
+        const formattedTasks = dailyTasks.map((t: any) => ({
+          id: t.id,
+          templateId: t.template_id,
+          name: t.challenge_templates?.name || 'Unknown Task',
+          description: t.challenge_templates?.description || '',
+          weight: t.challenge_templates?.weight || 1,
+          completed: t.completed
+        }));
+        setTasks(formattedTasks);
+      } else {
+        setTasks([]);
+      }
+    } finally {
+      setTasksLoading(false);
     }
-  };
+  }, []);
 
-  const handleChallengeCreated = async (challengeId: string) => {
+  const handleChallengeCreated = async () => {
     setShowSetup(false);
     setLoading(true);
     await fetchData();
@@ -176,9 +277,16 @@ export default function Dashboard() {
     navigate('/');
   };
 
+  const goToDay = async (day: number) => {
+    if (!challenge || day < 1 || day > challenge.currentDay) return;
+    setViewingDay(day);
+    await fetchOrCreateTasks(challenge.id, day);
+  };
+
   const completedTasks = tasks.filter(t => t.completed).length;
   const totalPoints = tasks.filter(t => t.completed).reduce((sum, t) => sum + t.weight, 0);
   const progress = tasks.length > 0 ? (completedTasks / tasks.length) * 100 : 0;
+  const isViewingToday = challenge ? viewingDay === challenge.currentDay : true;
 
   if (authLoading || loading) {
     return (
@@ -258,7 +366,7 @@ export default function Dashboard() {
                     <Trophy className="w-5 h-5" />
                     <span className="text-3xl font-display font-bold">{totalPoints}</span>
                   </div>
-                  <p className="text-sm text-muted-foreground">Points Today</p>
+                  <p className="text-sm text-muted-foreground">Points {isViewingToday ? 'Today' : `Day ${viewingDay}`}</p>
                 </div>
                 
                 <ProgressRing progress={progress} size={100}>
@@ -284,11 +392,11 @@ export default function Dashboard() {
             </h3>
             <div className="space-y-4">
               <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Current Streak</span>
-                <span className="font-bold">{challenge?.currentDay || 0} days</span>
+                <span className="text-muted-foreground">Current Day</span>
+                <span className="font-bold">{challenge?.currentDay || 0} / {challenge?.totalDays || 75}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Today's Progress</span>
+                <span className="text-muted-foreground">{isViewingToday ? "Today's" : `Day ${viewingDay}`} Progress</span>
                 <span className="font-bold">{Math.round(progress)}%</span>
               </div>
               <div className="flex justify-between items-center">
@@ -299,17 +407,57 @@ export default function Dashboard() {
           </motion.div>
         </div>
 
-        {/* Today's Tasks */}
+        {/* Day Tasks */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
         >
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-display font-semibold flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-primary" />
-              Today's Tasks
-            </h2>
+            <div className="flex items-center gap-4">
+              <h2 className="text-xl font-display font-semibold flex items-center gap-2">
+                <Calendar className="w-5 h-5 text-primary" />
+                {isViewingToday ? "Today's Tasks" : `Day ${viewingDay} Tasks`}
+              </h2>
+              
+              {/* Day Navigation */}
+              {challenge && challenge.currentDay > 1 && (
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    disabled={viewingDay <= 1 || tasksLoading}
+                    onClick={() => goToDay(viewingDay - 1)}
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </Button>
+                  <span className="text-sm text-muted-foreground min-w-[60px] text-center">
+                    Day {viewingDay}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    disabled={viewingDay >= challenge.currentDay || tasksLoading}
+                    onClick={() => goToDay(viewingDay + 1)}
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                  {!isViewingToday && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="ml-2"
+                      onClick={() => goToDay(challenge.currentDay)}
+                    >
+                      Go to Today
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
+            
             <TaskConfigDialog
               userId={user!.id}
               onSave={fetchData}
@@ -321,27 +469,42 @@ export default function Dashboard() {
               }
             />
           </div>
-          
-          <div className="grid gap-3">
-            {tasks.map((task, index) => (
-              <motion.div
-                key={task.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.4 + index * 0.05 }}
-              >
-                <TaskCard
-                  name={task.name}
-                  description={task.description}
-                  weight={task.weight}
-                  completed={task.completed}
-                  onToggle={() => toggleTask(task.id)}
-                />
-              </motion.div>
-            ))}
-          </div>
 
-          {progress === 100 && (
+          {/* Past day indicator */}
+          {!isViewingToday && (
+            <div className="mb-4 p-3 rounded-lg bg-muted/50 border border-border">
+              <p className="text-sm text-muted-foreground">
+                You are viewing a past day. You can still mark tasks as complete if you missed them.
+              </p>
+            </div>
+          )}
+          
+          {tasksLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-6 h-6 animate-spin text-primary" />
+            </div>
+          ) : (
+            <div className="grid gap-3">
+              {tasks.map((task, index) => (
+                <motion.div
+                  key={task.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.1 + index * 0.05 }}
+                >
+                  <TaskCard
+                    name={task.name}
+                    description={task.description}
+                    weight={task.weight}
+                    completed={task.completed}
+                    onToggle={() => toggleTask(task.id)}
+                  />
+                </motion.div>
+              ))}
+            </div>
+          )}
+
+          {progress === 100 && isViewingToday && (
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
