@@ -158,18 +158,12 @@ export default function Dashboard() {
       // Calculate total stats for the challenge
       await fetchChallengeStats(existingChallenge.id);
 
-      // Show completion dialog if challenge just completed and not already shown
+      // Mark completion as shown (but don't show popup automatically - user can view via button)
       if (isCompleted && !existingChallenge.completion_shown) {
-        // Mark completion as shown first to prevent race conditions
-        const { error: updateError } = await supabase
+        await supabase
           .from('user_challenges')
           .update({ completion_shown: true })
           .eq('id', existingChallenge.id);
-        
-        // Only show completion dialog if update succeeded
-        if (!updateError) {
-          setShowCompletion(true);
-        }
       }
 
       setViewingDay(actualCurrentDay);
