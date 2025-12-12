@@ -11,7 +11,7 @@ import { PageLoadingSkeleton } from '@/components/PageLoadingSkeleton';
 import { PageHeader } from '@/components/PageHeader';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
-  Medal, Crown, Trophy, Award,
+  Medal, Crown, Trophy, BarChart3,
   Calendar, CalendarDays, History,
   Users, User
 } from 'lucide-react';
@@ -215,7 +215,7 @@ export default function AchievementLeaderboard() {
       <main className="container max-w-4xl mx-auto px-4 py-8 space-y-6">
         <PageHeader 
           title="Leaderboard" 
-          icon={<Award className="w-6 h-6 text-primary" />}
+          icon={<BarChart3 className="w-6 h-6 text-primary" />}
         />
 
         {/* Leaderboard Type Tabs */}

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Flame, Trophy, Users, Clock, LogOut, Rss, UserPlus } from 'lucide-react';
+import { Flame, Trophy, Users, Clock, LogOut, Rss, UserPlus, BarChart3 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
@@ -123,6 +123,16 @@ export function GlobalNav() {
           >
             <Link to="/achievements">
               <Trophy className="w-5 h-5" />
+            </Link>
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            asChild
+            className={cn(isActive('/leaderboard') && 'bg-primary/10 text-primary')}
+          >
+            <Link to="/leaderboard">
+              <BarChart3 className="w-5 h-5" />
             </Link>
           </Button>
           <Button 
