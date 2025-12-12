@@ -572,11 +572,19 @@ export default function Dashboard() {
               <div className="flex flex-col items-center justify-center py-8 text-center">
                 <Rocket className="w-12 h-12 text-primary mb-4" />
                 <h3 className="font-display font-semibold text-lg mb-2">No Active Challenge</h3>
-                <p className="text-muted-foreground mb-4">Start a personal challenge to track your progress</p>
-                <Button onClick={() => setShowSetup(true)} className="gap-2">
-                  <Flame className="w-4 h-4" />
-                  Start Challenge
-                </Button>
+                <p className="text-muted-foreground mb-4">Start a personal challenge or join a group</p>
+                <div className="flex flex-wrap gap-3 justify-center">
+                  <Button onClick={() => setShowSetup(true)} className="gap-2">
+                    <Flame className="w-4 h-4" />
+                    Start Challenge
+                  </Button>
+                  <Button variant="outline" asChild className="gap-2">
+                    <Link to="/groups">
+                      <Users className="w-4 h-4" />
+                      Join a Group
+                    </Link>
+                  </Button>
+                </div>
               </div>
             )}
           </motion.div>
