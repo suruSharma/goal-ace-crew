@@ -4,22 +4,7 @@ import { Flame } from 'lucide-react';
 
 export function PageLoadingSkeleton() {
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header skeleton */}
-      <header className="border-b border-border">
-        <div className="container max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/30 flex items-center justify-center">
-              <Flame className="w-5 h-5 text-primary animate-pulse" />
-            </div>
-            <Skeleton className="h-6 w-24" />
-          </div>
-          <div className="flex items-center gap-2">
-            <Skeleton className="w-9 h-9 rounded-full" />
-            <Skeleton className="w-9 h-9 rounded-full" />
-          </div>
-        </div>
-      </header>
+    <>
 
       {/* Content skeleton */}
       <main className="container max-w-6xl mx-auto px-4 py-8">
@@ -93,13 +78,13 @@ export function PageLoadingSkeleton() {
           </div>
         </motion.div>
       </main>
-    </div>
+    </>
   );
 }
 
 export function SimpleLoadingSkeleton() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
+    <div className="flex-1 flex items-center justify-center py-20">
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
