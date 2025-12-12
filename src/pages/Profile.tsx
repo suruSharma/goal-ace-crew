@@ -10,7 +10,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { ArrowLeft, Save, Loader2, User, Scale, Target, CalendarIcon, Trash2, Ruler, Plus, Camera } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, User, Scale, Target, CalendarIcon, Trash2, Ruler, Plus, Camera, Users, AlertTriangle } from 'lucide-react';
 import { WeightProgressChart } from '@/components/WeightProgressChart';
 import { SimpleLoadingSkeleton } from '@/components/PageLoadingSkeleton';
 import {
@@ -56,6 +56,13 @@ export default function Profile() {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [loadingDeleteSummary, setLoadingDeleteSummary] = useState(false);
+  const [ownedGroupsSummary, setOwnedGroupsSummary] = useState<{
+    groupName: string;
+    newOwnerName: string | null;
+    willBeDeleted: boolean;
+  }[]>([]);
   const [profile, setProfile] = useState<ProfileData>({
     full_name: '',
     birthdate: '',
@@ -281,6 +288,93 @@ export default function Profile() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const fetchDeleteSummary = async () => {
+    setLoadingDeleteSummary(true);
+    try {
+      const { data: ownedGroups } = await supabase
+        .from('groups')
+        .select('id, name')
+        .eq('created_by', user!.id);
+
+      if (!ownedGroups || ownedGroups.length === 0) {
+        setOwnedGroupsSummary([]);
+        return;
+      }
+
+      const summary = await Promise.all(
+        ownedGroups.map(async (group) => {
+          const { data: members } = await supabase
+            .from('group_members')
+            .select(`
+              user_id,
+              profiles (full_name)
+            `)
+            .eq('group_id', group.id)
+            .neq('user_id', user!.id);
+
+          if (!members || members.length === 0) {
+            return {
+              groupName: group.name,
+              newOwnerName: null,
+              willBeDeleted: true
+            };
+          }
+
+          // Calculate points for each member
+          const memberPoints = await Promise.all(
+            members.map(async (m: any) => {
+              const { data: challenge } = await supabase
+                .from('user_challenges')
+                .select('id')
+                .eq('user_id', m.user_id)
+                .eq('is_active', true)
+                .maybeSingle();
+
+              let points = 0;
+              if (challenge) {
+                const { data: tasks } = await supabase
+                  .from('daily_tasks')
+                  .select(`completed, challenge_templates (weight)`)
+                  .eq('user_challenge_id', challenge.id)
+                  .eq('completed', true);
+
+                if (tasks) {
+                  points = tasks.reduce((sum: number, t: any) => 
+                    sum + (t.challenge_templates?.weight || 0), 0
+                  );
+                }
+              }
+              return { 
+                userId: m.user_id, 
+                name: m.profiles?.full_name || 'Unknown',
+                points 
+              };
+            })
+          );
+
+          memberPoints.sort((a, b) => b.points - a.points);
+          
+          return {
+            groupName: group.name,
+            newOwnerName: memberPoints[0].name,
+            willBeDeleted: false
+          };
+        })
+      );
+
+      setOwnedGroupsSummary(summary);
+    } catch (error) {
+      console.error('Error fetching delete summary:', error);
+    } finally {
+      setLoadingDeleteSummary(false);
+    }
+  };
+
+  const handleOpenDeleteDialog = () => {
+    setDeleteDialogOpen(true);
+    fetchDeleteSummary();
   };
 
   const handleDeleteProfile = async () => {
@@ -667,9 +761,14 @@ export default function Profile() {
             Once you delete your profile, there is no going back. All your data including challenges, tasks, and group memberships will be permanently deleted.
           </p>
           
-          <AlertDialog>
+          <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
             <AlertDialogTrigger asChild>
-              <Button variant="destructive" className="w-full" disabled={deleting}>
+              <Button 
+                variant="destructive" 
+                className="w-full" 
+                disabled={deleting}
+                onClick={handleOpenDeleteDialog}
+              >
                 {deleting ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
                 ) : (
@@ -680,11 +779,47 @@ export default function Profile() {
                 )}
               </Button>
             </AlertDialogTrigger>
-            <AlertDialogContent>
+            <AlertDialogContent className="max-w-lg">
               <AlertDialogHeader>
-                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This action cannot be undone. This will permanently delete your profile, all your challenges, tasks, and remove you from all groups.
+                <AlertDialogTitle className="flex items-center gap-2">
+                  <AlertTriangle className="w-5 h-5 text-destructive" />
+                  Are you absolutely sure?
+                </AlertDialogTitle>
+                <AlertDialogDescription asChild>
+                  <div className="space-y-4">
+                    <p>
+                      This action cannot be undone. This will permanently delete your profile, all your challenges, tasks, and remove you from all groups.
+                    </p>
+                    
+                    {loadingDeleteSummary ? (
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Checking owned groups...</span>
+                      </div>
+                    ) : ownedGroupsSummary.length > 0 && (
+                      <div className="rounded-lg bg-muted/50 border border-border p-3 space-y-2">
+                        <p className="font-medium text-foreground flex items-center gap-2">
+                          <Users className="w-4 h-4" />
+                          Groups you own:
+                        </p>
+                        <ul className="space-y-2 text-sm">
+                          {ownedGroupsSummary.map((group, idx) => (
+                            <li key={idx} className="flex items-start gap-2">
+                              <span className="text-muted-foreground">•</span>
+                              <span>
+                                <span className="font-medium text-foreground">{group.groupName}</span>
+                                {group.willBeDeleted ? (
+                                  <span className="text-destructive"> — will be deleted (no other members)</span>
+                                ) : (
+                                  <span className="text-muted-foreground"> — ownership transfers to <span className="text-primary font-medium">{group.newOwnerName}</span></span>
+                                )}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -692,6 +827,7 @@ export default function Profile() {
                 <AlertDialogAction
                   onClick={handleDeleteProfile}
                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  disabled={loadingDeleteSummary}
                 >
                   Delete Profile
                 </AlertDialogAction>
