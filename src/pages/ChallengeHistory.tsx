@@ -18,6 +18,7 @@ interface ChallengeHistory {
   totalDays: number;
   currentDay: number;
   isCompleted: boolean;
+  isActive: boolean;
   completedTasks: number;
   totalTasks: number;
   totalPoints: number;
@@ -66,19 +67,20 @@ export default function ChallengeHistoryPage() {
               t.completed ? sum + ((t.challenges as any)?.weight || 0) : sum, 0
             ) || 0;
 
-            // A challenge is completed if:
-            // 1. It's no longer active (was deactivated/restarted), OR
-            // 2. Days since start exceed total days
-            const daysSinceStart = differenceInDays(new Date(), parseISO(challenge.start_date)) + 1;
-            const isPastEndDate = daysSinceStart > challenge.total_days;
-            const isCompleted = !challenge.is_active || isPastEndDate;
+            // A challenge is truly completed only if:
+            // 1. All days have been reached (currentDay >= totalDays)
+            // 2. AND 100% of tasks are completed
+            const allDaysReached = challenge.current_day >= challenge.total_days;
+            const completionRate = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+            const isFullyCompleted = allDaysReached && completionRate === 100;
 
             return {
               id: challenge.id,
               startDate: challenge.start_date,
               totalDays: challenge.total_days,
               currentDay: Math.min(challenge.current_day, challenge.total_days),
-              isCompleted,
+              isCompleted: isFullyCompleted,
+              isActive: challenge.is_active,
               completedTasks,
               totalTasks,
               totalPoints
@@ -100,7 +102,8 @@ export default function ChallengeHistoryPage() {
   }
 
   const completedChallenges = challenges.filter(c => c.isCompleted);
-  const activeChallenges = challenges.filter(c => !c.isCompleted);
+  const activeChallenges = challenges.filter(c => c.isActive && !c.isCompleted);
+  const abandonedChallenges = challenges.filter(c => !c.isActive && !c.isCompleted);
 
   return (
     <div className="min-h-screen bg-background">
@@ -182,6 +185,7 @@ export default function ChallengeHistoryPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
+          className="mb-8"
         >
           <h2 className="text-xl font-display font-semibold mb-4 flex items-center gap-2">
             <Trophy className="w-5 h-5 text-primary" />
@@ -210,23 +214,62 @@ export default function ChallengeHistoryPage() {
             </div>
           )}
         </motion.div>
+
+        {/* Abandoned/Restarted Challenges */}
+        {abandonedChallenges.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+          >
+            <h2 className="text-xl font-display font-semibold mb-4 flex items-center gap-2">
+              <Clock className="w-5 h-5 text-muted-foreground" />
+              Previous Attempts
+            </h2>
+            <div className="space-y-4">
+              {abandonedChallenges.map((challenge) => (
+                <ChallengeCard key={challenge.id} challenge={challenge} isAbandoned />
+              ))}
+            </div>
+          </motion.div>
+        )}
       </main>
     </div>
   );
 }
 
-function ChallengeCard({ challenge, isActive = false }: { challenge: ChallengeHistory; isActive?: boolean }) {
+function ChallengeCard({ challenge, isActive = false, isAbandoned = false }: { challenge: ChallengeHistory; isActive?: boolean; isAbandoned?: boolean }) {
   const completionRate = challenge.totalTasks > 0 
     ? Math.round((challenge.completedTasks / challenge.totalTasks) * 100) 
     : 0;
 
+  const getBorderClass = () => {
+    if (isActive) return 'border-primary/50 bg-primary/5';
+    if (isAbandoned) return 'border-muted-foreground/30 bg-muted/30';
+    return 'border-border';
+  };
+
+  const getIconBgClass = () => {
+    if (isActive) return 'bg-orange-500/20';
+    if (isAbandoned) return 'bg-muted-foreground/20';
+    return 'bg-primary/20';
+  };
+
+  const getProgressBarClass = () => {
+    if (isActive) return 'bg-orange-500';
+    if (isAbandoned) return 'bg-muted-foreground';
+    return 'bg-primary';
+  };
+
   return (
-    <div className={`bg-card rounded-xl border p-5 ${isActive ? 'border-primary/50 bg-primary/5' : 'border-border'}`}>
+    <div className={`bg-card rounded-xl border p-5 ${getBorderClass()}`}>
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-start gap-4">
-          <div className={`w-12 h-12 rounded-full flex items-center justify-center ${isActive ? 'bg-orange-500/20' : 'bg-primary/20'}`}>
+          <div className={`w-12 h-12 rounded-full flex items-center justify-center ${getIconBgClass()}`}>
             {isActive ? (
               <Flame className="w-6 h-6 text-orange-500" />
+            ) : isAbandoned ? (
+              <Clock className="w-6 h-6 text-muted-foreground" />
             ) : (
               <CheckCircle2 className="w-6 h-6 text-primary" />
             )}
@@ -265,7 +308,7 @@ function ChallengeCard({ challenge, isActive = false }: { challenge: ChallengeHi
       <div className="mt-4">
         <div className="h-2 bg-muted rounded-full overflow-hidden">
           <div 
-            className={`h-full rounded-full transition-all ${isActive ? 'bg-orange-500' : 'bg-primary'}`}
+            className={`h-full rounded-full transition-all ${getProgressBarClass()}`}
             style={{ width: `${(challenge.currentDay / challenge.totalDays) * 100}%` }}
           />
         </div>
