@@ -10,6 +10,7 @@ import { ProgressRing } from '@/components/ui/progress-ring';
 import { StreakDisplay } from '@/components/StreakDisplay';
 import { useStreak } from '@/hooks/useStreak';
 import { ChallengeSetupDialog } from '@/components/ChallengeSetupDialog';
+import { ChallengeCompletion } from '@/components/ChallengeCompletion';
 import { TaskCardSkeletonGroup } from '@/components/TaskCardSkeleton';
 import { PageLoadingSkeleton } from '@/components/PageLoadingSkeleton';
 import { MotivationalQuote } from '@/components/MotivationalQuote';
@@ -47,6 +48,7 @@ interface Challenge {
   currentDay: number;
   totalDays: number;
   startDate: string;
+  isCompleted: boolean;
 }
 
 // Calculate which day of the challenge it is based on start date
@@ -66,8 +68,11 @@ export default function Dashboard() {
   const [profileName, setProfileName] = useState('');
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [showSetup, setShowSetup] = useState(false);
+  const [showCompletion, setShowCompletion] = useState(false);
   const [viewingDay, setViewingDay] = useState<number>(1);
   const [tasksLoading, setTasksLoading] = useState(false);
+  const [totalCompletedTasks, setTotalCompletedTasks] = useState(0);
+  const [totalChallengePoints, setTotalChallengePoints] = useState(0);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -132,12 +137,23 @@ export default function Dashboard() {
           .eq('id', existingChallenge.id);
       }
 
+      const isCompleted = calculatedDay > (existingChallenge.total_days || 75);
+
       setChallenge({
         id: existingChallenge.id,
         currentDay: actualCurrentDay,
         totalDays: existingChallenge.total_days || 75,
-        startDate: existingChallenge.start_date
+        startDate: existingChallenge.start_date,
+        isCompleted
       });
+
+      // Calculate total stats for the challenge
+      await fetchChallengeStats(existingChallenge.id);
+
+      // Show completion dialog if challenge just completed
+      if (isCompleted && actualCurrentDay === (existingChallenge.total_days || 75)) {
+        setShowCompletion(true);
+      }
 
       setViewingDay(actualCurrentDay);
 
@@ -151,6 +167,28 @@ export default function Dashboard() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchChallengeStats = async (challengeId: string) => {
+    try {
+      const { data: allTasks } = await supabase
+        .from('daily_tasks')
+        .select(`
+          completed,
+          challenges (weight)
+        `)
+        .eq('user_challenge_id', challengeId);
+
+      if (allTasks) {
+        const completedTasks = allTasks.filter((t: any) => t.completed);
+        setTotalCompletedTasks(completedTasks.length);
+        setTotalChallengePoints(
+          completedTasks.reduce((sum: number, t: any) => sum + (t.challenges?.weight || 0), 0)
+        );
+      }
+    } catch (error) {
+      console.error('Error fetching challenge stats:', error);
     }
   };
 
@@ -266,9 +304,12 @@ export default function Dashboard() {
         id: newChallenge.id,
         currentDay: 1,
         totalDays: newChallenge.total_days || 75,
-        startDate: newChallenge.start_date
+        startDate: newChallenge.start_date,
+        isCompleted: false
       });
       setViewingDay(1);
+      setTotalCompletedTasks(0);
+      setTotalChallengePoints(0);
       
       // Fetch tasks for day 1
       await fetchOrCreateTasks(newChallenge.id, 1);
@@ -376,8 +417,17 @@ export default function Dashboard() {
   const totalPoints = tasks.filter(t => t.completed).reduce((sum, t) => sum + t.weight, 0);
   const progress = tasks.length > 0 ? (completedTasks / tasks.length) * 100 : 0;
   const isViewingToday = challenge ? viewingDay === challenge.currentDay : true;
+  const isChallengeComplete = challenge?.isCompleted || (challenge && challenge.currentDay >= challenge.totalDays && progress === 100);
   
   const { currentStreak, longestStreak, loading: streakLoading } = useStreak(challenge?.id);
+
+  // Check for challenge completion when all tasks are done on final day
+  useEffect(() => {
+    if (challenge && !challenge.isCompleted && challenge.currentDay >= challenge.totalDays && progress === 100 && isViewingToday) {
+      setShowCompletion(true);
+      setChallenge(prev => prev ? { ...prev, isCompleted: true } : null);
+    }
+  }, [challenge, progress, isViewingToday]);
 
   if (authLoading || loading) {
     return <PageLoadingSkeleton />;
@@ -424,6 +474,20 @@ export default function Dashboard() {
           onOpenChange={setShowSetup}
           userId={user!.id}
           onChallengeCreated={handleChallengeCreated}
+        />
+
+        {/* Challenge Completion Dialog */}
+        <ChallengeCompletion
+          open={showCompletion}
+          onOpenChange={setShowCompletion}
+          totalDays={challenge?.totalDays || 75}
+          totalPoints={totalChallengePoints}
+          longestStreak={longestStreak}
+          completedTasksTotal={totalCompletedTasks}
+          onStartNew={() => {
+            setShowCompletion(false);
+            restartChallenge();
+          }}
         />
 
         {/* Welcome Section */}
@@ -504,28 +568,48 @@ export default function Dashboard() {
             </div>
             
             {challenge && (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="outline" size="sm" className="w-full mt-4 text-destructive hover:text-destructive">
-                    <RotateCcw className="w-4 h-4 mr-2" />
-                    Restart Challenge
+              <div className="space-y-2 mt-4">
+                {isChallengeComplete && (
+                  <Button 
+                    variant="default" 
+                    size="sm" 
+                    className="w-full"
+                    onClick={() => setShowCompletion(true)}
+                  >
+                    <Trophy className="w-4 h-4 mr-2" />
+                    View Completion Summary
                   </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Restart Challenge?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This will delete all your current progress and allow you to start a fresh challenge. Your weight history will be preserved.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={restartChallenge} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                      Restart
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+                )}
+                
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="outline" size="sm" className="w-full text-destructive hover:text-destructive">
+                      <RotateCcw className="w-4 h-4 mr-2" />
+                      {isChallengeComplete ? 'Start New Challenge' : 'Restart Challenge'}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>{isChallengeComplete ? 'Start New Challenge?' : 'Restart Challenge?'}</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        {isChallengeComplete 
+                          ? 'This will start a fresh challenge. Your previous stats will be reset but weight history will be preserved.'
+                          : 'This will delete all your current progress and allow you to start a fresh challenge. Your weight history will be preserved.'
+                        }
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction 
+                        onClick={restartChallenge} 
+                        className={isChallengeComplete ? '' : 'bg-destructive text-destructive-foreground hover:bg-destructive/90'}
+                      >
+                        {isChallengeComplete ? 'Start New' : 'Restart'}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
             )}
           </motion.div>
         </div>
