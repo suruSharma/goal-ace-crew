@@ -752,38 +752,37 @@ export default function Dashboard() {
             )}
           </motion.div>
 
-          {/* Quick Stats */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="bg-card rounded-2xl border border-border p-6"
-          >
-            <h3 className="font-display font-semibold mb-4 flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-primary" />
-              Stats
-            </h3>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Current Day</span>
-                <span className="font-bold">{challenge?.currentDay || 0} / {challenge?.totalDays || 75}</span>
+          {/* Quick Stats - only show when challenge exists */}
+          {challenge && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="bg-card rounded-2xl border border-border p-6"
+            >
+              <h3 className="font-display font-semibold mb-4 flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-primary" />
+                Stats
+              </h3>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">Current Day</span>
+                  <span className="font-bold">{challenge.currentDay} / {challenge.totalDays}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">{isViewingToday ? "Today's" : `Day ${viewingDay}`} Progress</span>
+                  <span className="font-bold">{Math.round(progress)}%</span>
+                </div>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">{isViewingToday ? "Today's" : `Day ${viewingDay}`} Progress</span>
-                <span className="font-bold">{Math.round(progress)}%</span>
+              
+              {/* Streak Display */}
+              <div className="mt-4 pt-4 border-t border-border">
+                <StreakDisplay 
+                  currentStreak={currentStreak} 
+                  longestStreak={longestStreak} 
+                  loading={streakLoading} 
+                />
               </div>
-            </div>
-            
-            {/* Streak Display */}
-            <div className="mt-4 pt-4 border-t border-border">
-              <StreakDisplay 
-                currentStreak={currentStreak} 
-                longestStreak={longestStreak} 
-                loading={streakLoading} 
-              />
-            </div>
-            
-            {challenge && (
               <div className="space-y-2 mt-4">
                 {isChallengeComplete && (
                   <Button 
@@ -826,8 +825,8 @@ export default function Dashboard() {
                   </AlertDialogContent>
                 </AlertDialog>
               </div>
-            )}
-          </motion.div>
+            </motion.div>
+          )}
 
           {/* Achievements Card */}
           <motion.div
