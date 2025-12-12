@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { postAchievementUnlocked } from '@/lib/feedUtils';
 
 interface Achievement {
   id: string;
@@ -114,12 +115,14 @@ export function useAchievements(userId: string | undefined) {
         });
         setNewlyUnlocked(toUnlock);
 
-        // Show toast for each unlocked achievement
+        // Show toast and post to feed for each unlocked achievement
         toUnlock.forEach(a => {
           toast({
             title: "🏆 Achievement Unlocked!",
             description: `${a.name}: ${a.description}`,
           });
+          // Auto-post to feed
+          postAchievementUnlocked(userId!, a.name, a.description, a.points || 0);
         });
       }
     }
