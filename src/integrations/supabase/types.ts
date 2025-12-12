@@ -310,6 +310,27 @@ export type Database = {
         }
         Relationships: []
       }
+      quotes: {
+        Row: {
+          author: string
+          created_at: string
+          id: string
+          text: string
+        }
+        Insert: {
+          author: string
+          created_at?: string
+          id?: string
+          text: string
+        }
+        Update: {
+          author?: string
+          created_at?: string
+          id?: string
+          text?: string
+        }
+        Relationships: []
+      }
       user_challenges: {
         Row: {
           created_at: string | null
