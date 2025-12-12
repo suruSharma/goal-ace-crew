@@ -363,6 +363,7 @@ export default function Auth() {
           open={showProfileSetup}
           onOpenChange={setShowProfileSetup}
           userId={user.id}
+          username={username}
           onComplete={handleProfileComplete}
         />
       )}
