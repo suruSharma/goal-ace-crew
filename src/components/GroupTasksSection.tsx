@@ -1,0 +1,464 @@
+import { useState, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { supabase } from '@/integrations/supabase/client';
+import { TaskCard } from '@/components/TaskCard';
+import { TaskCardSkeletonGroup } from '@/components/TaskCardSkeleton';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
+import { Users, ChevronDown, ChevronUp, Loader2, Play } from 'lucide-react';
+import { differenceInDays, parseISO, startOfDay } from 'date-fns';
+import { Link } from 'react-router-dom';
+
+interface GroupTask {
+  id: string;
+  templateId: string;
+  name: string;
+  description: string;
+  weight: number;
+  completed: boolean;
+}
+
+interface GroupWithChallenge {
+  id: string;
+  name: string;
+  totalDays: number;
+  challengeId: string | null;
+  startDate: string | null;
+  currentDay: number;
+  tasks: GroupTask[];
+  loading: boolean;
+  expanded: boolean;
+}
+
+interface GroupTasksSectionProps {
+  userId: string;
+  onTaskToggle?: () => void;
+}
+
+const calculateCurrentDay = (startDate: string, totalDays: number): number => {
+  const start = startOfDay(parseISO(startDate));
+  const today = startOfDay(new Date());
+  const day = differenceInDays(today, start) + 1;
+  return Math.min(Math.max(1, day), totalDays);
+};
+
+export function GroupTasksSection({ userId, onTaskToggle }: GroupTasksSectionProps) {
+  const { toast } = useToast();
+  const [groups, setGroups] = useState<GroupWithChallenge[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [startingChallenge, setStartingChallenge] = useState<string | null>(null);
+
+  const fetchGroups = useCallback(async () => {
+    try {
+      // Get user's group memberships
+      const { data: memberships } = await supabase
+        .from('group_members')
+        .select('group_id')
+        .eq('user_id', userId);
+
+      if (!memberships || memberships.length === 0) {
+        setLoading(false);
+        return;
+      }
+
+      const groupIds = memberships.map(m => m.group_id);
+
+      // Get group details
+      const { data: groupsData } = await supabase
+        .from('groups')
+        .select('id, name, total_days')
+        .in('id', groupIds)
+        .eq('status', 'published');
+
+      if (!groupsData || groupsData.length === 0) {
+        setLoading(false);
+        return;
+      }
+
+      // Get user's challenges for these groups
+      const { data: challenges } = await supabase
+        .from('user_challenges')
+        .select('id, group_id, start_date, current_day')
+        .eq('user_id', userId)
+        .eq('is_active', true)
+        .in('group_id', groupIds);
+
+      const groupsWithChallenges: GroupWithChallenge[] = groupsData.map(g => {
+        const challenge = challenges?.find(c => c.group_id === g.id);
+        const currentDay = challenge?.start_date 
+          ? calculateCurrentDay(challenge.start_date, g.total_days)
+          : 1;
+
+        return {
+          id: g.id,
+          name: g.name,
+          totalDays: g.total_days,
+          challengeId: challenge?.id || null,
+          startDate: challenge?.start_date || null,
+          currentDay,
+          tasks: [],
+          loading: false,
+          expanded: false
+        };
+      });
+
+      setGroups(groupsWithChallenges);
+    } catch (error) {
+      console.error('Error fetching groups:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    fetchGroups();
+  }, [fetchGroups]);
+
+  const startGroupChallenge = async (groupId: string) => {
+    setStartingChallenge(groupId);
+    try {
+      const group = groups.find(g => g.id === groupId);
+      if (!group) return;
+
+      // Create a user_challenge linked to this group
+      const { data: newChallenge, error } = await supabase
+        .from('user_challenges')
+        .insert({
+          user_id: userId,
+          group_id: groupId,
+          total_days: group.totalDays,
+          is_active: true,
+          current_day: 1,
+          start_date: new Date().toISOString().split('T')[0]
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast({
+        title: "Challenge started!",
+        description: `You've started the ${group.name} group challenge`
+      });
+
+      // Update local state
+      setGroups(prev => prev.map(g => 
+        g.id === groupId 
+          ? { 
+              ...g, 
+              challengeId: newChallenge.id, 
+              startDate: newChallenge.start_date,
+              currentDay: 1 
+            }
+          : g
+      ));
+
+      // Auto-expand and fetch tasks
+      await toggleGroupExpanded(groupId, newChallenge.id);
+    } catch (error: any) {
+      toast({
+        title: "Error starting challenge",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setStartingChallenge(null);
+    }
+  };
+
+  const fetchGroupTasks = async (groupId: string, challengeId: string, dayNumber: number) => {
+    setGroups(prev => prev.map(g => 
+      g.id === groupId ? { ...g, loading: true } : g
+    ));
+
+    try {
+      // First try to fetch existing tasks
+      let { data: dailyTasks } = await supabase
+        .from('daily_tasks')
+        .select(`
+          id,
+          completed,
+          template_id,
+          challenges (
+            id,
+            name,
+            description,
+            weight
+          )
+        `)
+        .eq('user_challenge_id', challengeId)
+        .eq('day_number', dayNumber);
+
+      // If no tasks exist, create them from group templates
+      if (!dailyTasks || dailyTasks.length === 0) {
+        // Get group's task templates
+        let { data: templates } = await supabase
+          .from('challenges')
+          .select('*')
+          .eq('group_id', groupId);
+
+        // Fall back to defaults if no group templates
+        if (!templates || templates.length === 0) {
+          const { data: defaultTemplates } = await supabase
+            .from('challenges')
+            .select('*')
+            .eq('is_default', true);
+          templates = defaultTemplates;
+        }
+
+        if (templates && templates.length > 0) {
+          const newTasks = templates.map(t => ({
+            user_challenge_id: challengeId,
+            template_id: t.id,
+            day_number: dayNumber,
+            completed: false
+          }));
+
+          await supabase.from('daily_tasks').insert(newTasks);
+
+          // Fetch the newly created tasks
+          const { data: createdTasks } = await supabase
+            .from('daily_tasks')
+            .select(`
+              id,
+              completed,
+              template_id,
+              challenges (
+                id,
+                name,
+                description,
+                weight
+              )
+            `)
+            .eq('user_challenge_id', challengeId)
+            .eq('day_number', dayNumber);
+
+          dailyTasks = createdTasks;
+        }
+      }
+
+      const formattedTasks: GroupTask[] = dailyTasks?.map((t: any) => ({
+        id: t.id,
+        templateId: t.template_id,
+        name: t.challenges?.name || 'Unknown Task',
+        description: t.challenges?.description || '',
+        weight: t.challenges?.weight || 1,
+        completed: t.completed
+      })) || [];
+
+      setGroups(prev => prev.map(g => 
+        g.id === groupId ? { ...g, tasks: formattedTasks, loading: false } : g
+      ));
+    } catch (error) {
+      console.error('Error fetching group tasks:', error);
+      setGroups(prev => prev.map(g => 
+        g.id === groupId ? { ...g, loading: false } : g
+      ));
+    }
+  };
+
+  const toggleGroupExpanded = async (groupId: string, challengeId?: string) => {
+    const group = groups.find(g => g.id === groupId);
+    if (!group) return;
+
+    const newExpanded = !group.expanded;
+
+    setGroups(prev => prev.map(g => 
+      g.id === groupId ? { ...g, expanded: newExpanded } : g
+    ));
+
+    // Fetch tasks when expanding (if challenge exists and tasks not loaded)
+    const cId = challengeId || group.challengeId;
+    if (newExpanded && cId && group.tasks.length === 0) {
+      await fetchGroupTasks(groupId, cId, group.currentDay);
+    }
+  };
+
+  const toggleTask = async (groupId: string, taskId: string) => {
+    const group = groups.find(g => g.id === groupId);
+    if (!group) return;
+
+    const task = group.tasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    const newCompleted = !task.completed;
+
+    // Optimistic update
+    setGroups(prev => prev.map(g => 
+      g.id === groupId 
+        ? { ...g, tasks: g.tasks.map(t => t.id === taskId ? { ...t, completed: newCompleted } : t) }
+        : g
+    ));
+
+    const { error } = await supabase
+      .from('daily_tasks')
+      .update({ 
+        completed: newCompleted,
+        completed_at: newCompleted ? new Date().toISOString() : null
+      })
+      .eq('id', taskId);
+
+    if (error) {
+      // Revert on error
+      setGroups(prev => prev.map(g => 
+        g.id === groupId 
+          ? { ...g, tasks: g.tasks.map(t => t.id === taskId ? { ...t, completed: !newCompleted } : t) }
+          : g
+      ));
+      toast({
+        title: "Error updating task",
+        description: error.message,
+        variant: "destructive"
+      });
+    } else {
+      onTaskToggle?.();
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        <div className="h-6 bg-muted/50 rounded w-40 animate-pulse" />
+        <div className="h-24 bg-muted/50 rounded animate-pulse" />
+      </div>
+    );
+  }
+
+  if (groups.length === 0) {
+    return null;
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.4 }}
+      className="mb-8"
+    >
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-display font-semibold flex items-center gap-2">
+          <Users className="w-5 h-5 text-primary" />
+          Group Tasks
+        </h2>
+        <Button variant="ghost" size="sm" asChild>
+          <Link to="/groups">View All Groups</Link>
+        </Button>
+      </div>
+
+      <div className="space-y-3">
+        {groups.map((group) => {
+          const completedTasks = group.tasks.filter(t => t.completed).length;
+          const totalTasks = group.tasks.length;
+          const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+          return (
+            <div 
+              key={group.id}
+              className="bg-card rounded-xl border border-border overflow-hidden"
+            >
+              {/* Group Header */}
+              <div 
+                className="p-4 flex items-center justify-between cursor-pointer hover:bg-muted/30 transition-colors"
+                onClick={() => group.challengeId && toggleGroupExpanded(group.id)}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Users className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">{group.name}</h3>
+                    {group.challengeId ? (
+                      <p className="text-sm text-muted-foreground">
+                        Day {group.currentDay} of {group.totalDays}
+                        {group.expanded && totalTasks > 0 && (
+                          <span className="ml-2">• {completedTasks}/{totalTasks} tasks ({progress}%)</span>
+                        )}
+                      </p>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        {group.totalDays} day challenge • Not started
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {!group.challengeId ? (
+                    <Button 
+                      size="sm" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        startGroupChallenge(group.id);
+                      }}
+                      disabled={startingChallenge === group.id}
+                    >
+                      {startingChallenge === group.id ? (
+                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                      ) : (
+                        <Play className="w-4 h-4 mr-2" />
+                      )}
+                      Start
+                    </Button>
+                  ) : (
+                    <>
+                      {group.expanded && totalTasks > 0 && progress === 100 && (
+                        <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
+                          Complete!
+                        </span>
+                      )}
+                      {group.expanded ? (
+                        <ChevronUp className="w-5 h-5 text-muted-foreground" />
+                      ) : (
+                        <ChevronDown className="w-5 h-5 text-muted-foreground" />
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Expandable Tasks */}
+              <AnimatePresence>
+                {group.expanded && group.challengeId && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="border-t border-border"
+                  >
+                    <div className="p-4 space-y-2">
+                      {group.loading ? (
+                        <TaskCardSkeletonGroup count={3} />
+                      ) : group.tasks.length > 0 ? (
+                        group.tasks.map((task, index) => (
+                          <motion.div
+                            key={task.id}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: index * 0.05 }}
+                          >
+                            <TaskCard
+                              name={task.name}
+                              description={task.description}
+                              weight={task.weight}
+                              completed={task.completed}
+                              onToggle={() => toggleTask(group.id, task.id)}
+                            />
+                          </motion.div>
+                        ))
+                      ) : (
+                        <p className="text-sm text-muted-foreground text-center py-4">
+                          No tasks configured for this group
+                        </p>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          );
+        })}
+      </div>
+    </motion.div>
+  );
+}

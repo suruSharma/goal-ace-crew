@@ -16,6 +16,7 @@ import { AchievementsDisplay } from '@/components/AchievementsDisplay';
 import { TaskCardSkeletonGroup } from '@/components/TaskCardSkeleton';
 import { PageLoadingSkeleton } from '@/components/PageLoadingSkeleton';
 import { MotivationalQuote } from '@/components/MotivationalQuote';
+import { GroupTasksSection } from '@/components/GroupTasksSection';
 import { useToast } from '@/hooks/use-toast';
 import { 
   Flame, LogOut, Users, Trophy, 
@@ -985,6 +986,14 @@ export default function Dashboard() {
             </motion.div>
           )}
         </motion.div>
+
+        {/* Group Tasks Section */}
+        {user && myGroups.length > 0 && (
+          <GroupTasksSection 
+            userId={user.id} 
+            onTaskToggle={() => fetchUserGroups()} 
+          />
+        )}
       </main>
 
       {/* Start New Challenge Button - only show if no challenge */}
