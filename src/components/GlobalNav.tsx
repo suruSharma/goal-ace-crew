@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Flame, Home, Trophy, Users, Clock, LogOut, ArrowLeft } from 'lucide-react';
+import { Flame, Trophy, Users, Clock, LogOut, Rss, UserPlus } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
 
 export function GlobalNav() {
   const location = useLocation();
@@ -13,10 +14,12 @@ export function GlobalNav() {
   const isDashboard = location.pathname === '/dashboard';
   const [profileName, setProfileName] = useState('');
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [pendingRequestCount, setPendingRequestCount] = useState(0);
 
   useEffect(() => {
     if (user) {
       fetchProfile();
+      fetchPendingRequestCount();
     }
   }, [user]);
 
@@ -30,6 +33,20 @@ export function GlobalNav() {
     if (data) {
       setProfileName(data.full_name || '');
       setAvatarUrl(data.avatar_url);
+    }
+  };
+
+  const fetchPendingRequestCount = async () => {
+    try {
+      const { count } = await (supabase
+        .from('friendships' as any)
+        .select('*', { count: 'exact', head: true })
+        .eq('addressee_id', user!.id)
+        .eq('status', 'pending') as any);
+      
+      setPendingRequestCount(count || 0);
+    } catch (error) {
+      console.error('Error fetching pending request count:', error);
     }
   };
 
@@ -59,6 +76,34 @@ export function GlobalNav() {
         </Link>
         
         <div className="flex items-center gap-1">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            asChild
+            className={cn(isActive('/feed') && 'bg-primary/10 text-primary')}
+          >
+            <Link to="/feed">
+              <Rss className="w-5 h-5" />
+            </Link>
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            asChild
+            className={cn("relative", isActive('/friends') && 'bg-primary/10 text-primary')}
+          >
+            <Link to="/friends">
+              <UserPlus className="w-5 h-5" />
+              {pendingRequestCount > 0 && (
+                <Badge 
+                  variant="destructive" 
+                  className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-xs"
+                >
+                  {pendingRequestCount > 9 ? '9+' : pendingRequestCount}
+                </Badge>
+              )}
+            </Link>
+          </Button>
           <Button 
             variant="ghost" 
             size="icon" 

@@ -26,6 +26,7 @@ import {
 import { Link } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
 import { differenceInDays, parseISO, startOfDay } from 'date-fns';
+import { postTaskCompletion } from '@/lib/feedUtils';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -483,6 +484,11 @@ export default function Dashboard() {
         variant: "destructive"
       });
     } else {
+      // Auto-post task completion to feed
+      if (newCompleted && user) {
+        postTaskCompletion(user.id, 1, task.weight);
+      }
+      
       // Recalculate streak after successful task update
       if (recalculateStreakFn) {
         await recalculateStreakFn();
