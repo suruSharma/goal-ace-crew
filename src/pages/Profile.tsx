@@ -11,7 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { ArrowLeft, Save, Loader2, User, Scale, Target, CalendarIcon, Trash2, Ruler, Plus, Camera, Users, AlertTriangle, Heart, Mail, Palette, ChevronRight } from 'lucide-react';
-import { AppHeader } from '@/components/AppHeader';
+import { PageHeader } from '@/components/PageHeader';
 import { ThemeSettings } from '@/components/ThemeSettings';
 import { WeightProgressChart } from '@/components/WeightProgressChart';
 import { FavoriteQuotes } from '@/components/FavoriteQuotes';
@@ -586,6 +586,10 @@ export default function Profile() {
   return (
     <>
       <main className="container max-w-2xl mx-auto px-4 py-8 space-y-6">
+        <PageHeader 
+          title="Profile Settings" 
+          icon={<User className="w-5 h-5 text-primary" />}
+        />
         <div
           className="bg-card rounded-2xl border border-border p-6 animate-fade-in"
         >

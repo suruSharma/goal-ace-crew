@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { AppHeader } from '@/components/AppHeader';
+import { PageHeader } from '@/components/PageHeader';
 import { PageLoadingSkeleton } from '@/components/PageLoadingSkeleton';
 import { 
   Trophy, Calendar, CheckCircle2, Clock, 
@@ -108,21 +108,14 @@ export default function ChallengeHistoryPage() {
   return (
     <>
       <main className="container mx-auto px-4 py-8 max-w-4xl">
-
-        {/* Page Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
-        >
-          <h1 className="text-3xl font-display font-bold flex items-center gap-3">
-            <Clock className="w-8 h-8 text-primary" />
-            Challenge History
-          </h1>
-          <p className="text-muted-foreground mt-2">
-            View all your past and current challenges
-          </p>
-        </motion.div>
+        <PageHeader 
+          title="Challenge History" 
+          icon={<Clock className="w-6 h-6 text-primary" />}
+        />
+        
+        <p className="text-muted-foreground mb-6">
+          View all your past and current challenges
+        </p>
 
         {/* Stats Summary */}
         <motion.div

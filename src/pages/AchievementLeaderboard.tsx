@@ -8,7 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { PageLoadingSkeleton } from '@/components/PageLoadingSkeleton';
-import { AppHeader } from '@/components/AppHeader';
+import { PageHeader } from '@/components/PageHeader';
 import { 
   Trophy, Medal, Crown, 
   Calendar, CalendarDays, History
@@ -104,6 +104,10 @@ export default function AchievementLeaderboard() {
   return (
     <>
       <main className="container max-w-4xl mx-auto px-4 py-8 space-y-6">
+        <PageHeader 
+          title="Leaderboard" 
+          icon={<Trophy className="w-6 h-6 text-primary" />}
+        />
         {/* Time Period Filters */}
         <div className="flex flex-wrap gap-2">
           {TIME_PERIODS.map(period => {

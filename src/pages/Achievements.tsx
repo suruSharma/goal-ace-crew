@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { PageLoadingSkeleton } from '@/components/PageLoadingSkeleton';
 import { AchievementIcon } from '@/components/AchievementIcon';
-import { AppHeader } from '@/components/AppHeader';
+import { PageHeader } from '@/components/PageHeader';
 import { 
   Flame, Trophy, Lock, Unlock, 
   Zap, Target, Star, Award, Users
@@ -158,6 +158,20 @@ export default function Achievements() {
   return (
     <>
       <main className="container max-w-4xl mx-auto px-4 py-8 space-y-8">
+        <PageHeader 
+          title="Achievements" 
+          icon={<Trophy className="w-6 h-6 text-primary" />}
+        >
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/achievements/leaderboard" className="gap-2">
+              <Users className="w-4 h-4" />
+              Leaderboard
+            </Link>
+          </Button>
+          <Badge variant="secondary" className="text-sm">
+            {unlockedIds.size} / {achievements.length}
+          </Badge>
+        </PageHeader>
         {/* Category Filters */}
         <div className="flex flex-wrap gap-2">
           {CATEGORIES.map(category => {
