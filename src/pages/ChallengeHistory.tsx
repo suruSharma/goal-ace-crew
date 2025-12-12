@@ -66,16 +66,19 @@ export default function ChallengeHistoryPage() {
               t.completed ? sum + ((t.challenges as any)?.weight || 0) : sum, 0
             ) || 0;
 
-            // Calculate if completed based on current day vs total days
+            // A challenge is completed if:
+            // 1. It's no longer active (was deactivated/restarted), OR
+            // 2. Days since start exceed total days
             const daysSinceStart = differenceInDays(new Date(), parseISO(challenge.start_date)) + 1;
-            const isCompleted = daysSinceStart > challenge.total_days;
+            const isPastEndDate = daysSinceStart > challenge.total_days;
+            const isCompleted = !challenge.is_active || isPastEndDate;
 
             return {
               id: challenge.id,
               startDate: challenge.start_date,
               totalDays: challenge.total_days,
               currentDay: Math.min(challenge.current_day, challenge.total_days),
-              isCompleted: isCompleted && !challenge.is_active,
+              isCompleted,
               completedTasks,
               totalTasks,
               totalPoints
