@@ -14,7 +14,6 @@ import { z } from 'zod';
 const authSchema = z.object({
   email: z.string().email('Invalid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
-  fullName: z.string().min(2, 'Name must be at least 2 characters').optional(),
 });
 
 type AuthMode = 'login' | 'signup' | 'forgot-password' | 'check-email';
@@ -23,7 +22,6 @@ export default function Auth() {
   const [mode, setMode] = useState<AuthMode>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [showProfileSetup, setShowProfileSetup] = useState(false);
@@ -90,15 +88,13 @@ export default function Auth() {
         return;
       }
 
-      const validationData = mode === 'login' 
-        ? { email, password }
-        : { email, password, fullName };
+      const validationData = { email, password };
       
       authSchema.parse(validationData);
 
       const { error, data } = mode === 'login' 
         ? await signIn(email, password)
-        : await signUp(email, password, fullName);
+        : await signUp(email, password);
 
       if (error) {
         let errorMessage = error.message;
@@ -290,19 +286,6 @@ export default function Auth() {
 
     return (
       <form onSubmit={handleSubmit} className="space-y-4">
-        {mode === 'signup' && (
-          <div className="space-y-2">
-            <Label htmlFor="fullName">Full Name</Label>
-            <Input
-              id="fullName"
-              type="text"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              placeholder="Your name"
-              className="bg-secondary/50"
-            />
-          </div>
-        )}
         
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
