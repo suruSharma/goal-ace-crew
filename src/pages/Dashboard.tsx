@@ -121,8 +121,7 @@ export default function Dashboard() {
         .maybeSingle();
 
       if (!existingChallenge) {
-        // No active challenge - show setup dialog
-        setShowSetup(true);
+        // No active challenge - user can start one manually if they want
         setLoading(false);
         return;
       }
@@ -547,27 +546,39 @@ export default function Dashboard() {
             transition={{ delay: 0.1 }}
             className="md:col-span-2 bg-card rounded-2xl border border-border p-6 relative"
           >
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-              <div className="flex items-center gap-4">
-                <DayCounter currentDay={challenge?.currentDay || 1} totalDays={challenge?.totalDays || 75} />
-              </div>
-              <div className="flex items-center gap-8">
-                <div className="text-center">
-                  <div className="flex items-center gap-2 text-primary">
-                    <Trophy className="w-5 h-5" />
-                    <span className="text-3xl font-display font-bold">{totalPoints}</span>
-                  </div>
-                  <p className="text-sm text-muted-foreground">Points {isViewingToday ? 'Today' : `Day ${viewingDay}`}</p>
+            {challenge ? (
+              <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                <div className="flex items-center gap-4">
+                  <DayCounter currentDay={challenge.currentDay} totalDays={challenge.totalDays} />
                 </div>
-                
-                <ProgressRing progress={progress} size={100}>
+                <div className="flex items-center gap-8">
                   <div className="text-center">
-                    <span className="text-xl font-display font-bold">{completedTasks}</span>
-                    <span className="text-muted-foreground">/{tasks.length}</span>
+                    <div className="flex items-center gap-2 text-primary">
+                      <Trophy className="w-5 h-5" />
+                      <span className="text-3xl font-display font-bold">{totalPoints}</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">Points {isViewingToday ? 'Today' : `Day ${viewingDay}`}</p>
                   </div>
-                </ProgressRing>
+                  
+                  <ProgressRing progress={progress} size={100}>
+                    <div className="text-center">
+                      <span className="text-xl font-display font-bold">{completedTasks}</span>
+                      <span className="text-muted-foreground">/{tasks.length}</span>
+                    </div>
+                  </ProgressRing>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <Rocket className="w-12 h-12 text-primary mb-4" />
+                <h3 className="font-display font-semibold text-lg mb-2">No Active Challenge</h3>
+                <p className="text-muted-foreground mb-4">Start a personal challenge to track your progress</p>
+                <Button onClick={() => setShowSetup(true)} className="gap-2">
+                  <Flame className="w-4 h-4" />
+                  Start Challenge
+                </Button>
+              </div>
+            )}
           </motion.div>
 
           {/* Quick Stats */}
