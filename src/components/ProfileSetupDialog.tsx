@@ -167,6 +167,9 @@ export function ProfileSetupDialog({
                   selected={birthdate}
                   onSelect={setBirthdate}
                   disabled={(date) => date > maxBirthdate}
+                  captionLayout="dropdown"
+                  startMonth={new Date(1940, 0)}
+                  endMonth={maxBirthdate}
                   initialFocus
                   className={cn("p-3 pointer-events-auto")}
                 />
@@ -298,6 +301,9 @@ export function ProfileSetupDialog({
                   selected={goalDate}
                   onSelect={setGoalDate}
                   disabled={(date) => date < today}
+                  captionLayout="dropdown"
+                  startMonth={today}
+                  endMonth={new Date(today.getFullYear() + 5, 11)}
                   initialFocus
                   className={cn("p-3 pointer-events-auto")}
                 />

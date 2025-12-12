@@ -341,7 +341,10 @@ export default function Profile() {
                       ...p, 
                       birthdate: date ? format(date, 'yyyy-MM-dd') : '' 
                     }))}
-                    disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
+                    disabled={(date) => date > new Date()}
+                    captionLayout="dropdown"
+                    startMonth={new Date(1940, 0)}
+                    endMonth={new Date()}
                     initialFocus
                     className={cn("p-3 pointer-events-auto")}
                   />
