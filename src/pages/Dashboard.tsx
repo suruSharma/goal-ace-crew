@@ -733,48 +733,58 @@ export default function Dashboard() {
             ) : (
               <div className={`flex flex-col items-center justify-center text-center ${myGroups.length === 0 ? 'py-10' : 'py-6'}`}>
                 <div className={`${myGroups.length === 0 ? 'w-16 h-16' : 'w-10 h-10'} bg-primary/10 rounded-full flex items-center justify-center mb-4`}>
-                  <Rocket className={`${myGroups.length === 0 ? 'w-8 h-8' : 'w-5 h-5'} text-primary`} />
+                  {myGroups.length > 0 ? (
+                    <Users className={`${myGroups.length === 0 ? 'w-8 h-8' : 'w-5 h-5'} text-primary`} />
+                  ) : (
+                    <Rocket className={`${myGroups.length === 0 ? 'w-8 h-8' : 'w-5 h-5'} text-primary`} />
+                  )}
                 </div>
-                <h3 className={`font-display font-semibold mb-2 ${myGroups.length === 0 ? 'text-xl' : 'text-lg'}`}>No Active Challenge</h3>
+                <h3 className={`font-display font-semibold mb-2 ${myGroups.length === 0 ? 'text-xl' : 'text-lg'}`}>
+                  {myGroups.length > 0 ? 'No Personal Challenge' : 'No Active Challenge'}
+                </h3>
                 <p className={`text-muted-foreground mb-4 ${myGroups.length === 0 ? 'text-base max-w-sm' : 'text-sm'}`}>
                   {myGroups.length === 0 
                     ? 'Begin your transformation journey today. Start a personal challenge or join a group to stay accountable.'
-                    : 'Start a personal challenge or join a group'
+                    : 'You have group challenges active. Start a personal challenge to track your individual progress too!'
                   }
                 </p>
                 <div className={`flex flex-wrap gap-3 justify-center ${myGroups.length === 0 ? 'mb-6' : 'mb-4'}`}>
                   <Button onClick={() => setShowSetup(true)} className="gap-2" size={myGroups.length === 0 ? 'lg' : 'default'}>
                     <Flame className="w-4 h-4" />
-                    Start Challenge
+                    Start Personal Challenge
                   </Button>
-                  <Button variant="outline" asChild className="gap-2" size={myGroups.length === 0 ? 'lg' : 'default'}>
-                    <Link to="/groups">
-                      <Users className="w-4 h-4" />
-                      Browse Groups
-                    </Link>
-                  </Button>
+                  {myGroups.length === 0 && (
+                    <Button variant="outline" asChild className="gap-2" size="lg">
+                      <Link to="/groups">
+                        <Users className="w-4 h-4" />
+                        Browse Groups
+                      </Link>
+                    </Button>
+                  )}
                 </div>
                 
-                {/* Quick Join with Invite Code */}
-                <div className={`w-full pt-4 border-t border-border ${myGroups.length === 0 ? 'max-w-sm' : 'max-w-xs'}`}>
-                  <p className="text-xs text-muted-foreground mb-2">Have an invite code?</p>
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="Enter code"
-                      value={inviteCode}
-                      onChange={(e) => setInviteCode(e.target.value)}
-                      className="text-sm"
-                      onKeyDown={(e) => e.key === 'Enter' && handleQuickJoinGroup()}
-                    />
-                    <Button 
-                      size="sm" 
-                      onClick={handleQuickJoinGroup}
-                      disabled={joiningGroup || !inviteCode.trim()}
-                    >
-                      {joiningGroup ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
-                    </Button>
+                {/* Quick Join with Invite Code - only show when no groups */}
+                {myGroups.length === 0 && (
+                  <div className="w-full pt-4 border-t border-border max-w-sm">
+                    <p className="text-xs text-muted-foreground mb-2">Have an invite code?</p>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Enter code"
+                        value={inviteCode}
+                        onChange={(e) => setInviteCode(e.target.value)}
+                        className="text-sm"
+                        onKeyDown={(e) => e.key === 'Enter' && handleQuickJoinGroup()}
+                      />
+                      <Button 
+                        size="sm" 
+                        onClick={handleQuickJoinGroup}
+                        disabled={joiningGroup || !inviteCode.trim()}
+                      >
+                        {joiningGroup ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
+                      </Button>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             )}
           </motion.div>
@@ -891,18 +901,19 @@ export default function Dashboard() {
           </motion.div>
         )}
 
-        {/* Day Tasks - only show when there's an active personal challenge */}
+        {/* Personal Tasks - only show when there's an active personal challenge */}
         {challenge && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
+            className="mb-8"
           >
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-4">
                 <h2 className="text-xl font-display font-semibold flex items-center gap-2">
-                  <Calendar className="w-5 h-5 text-primary" />
-                  {isViewingToday ? "Today's Tasks" : `Day ${viewingDay} Tasks`}
+                  <Flame className="w-5 h-5 text-primary" />
+                  {isViewingToday ? "Personal Tasks" : `Day ${viewingDay} Tasks`}
                 </h2>
                 
                 {/* Day Navigation */}
@@ -953,40 +964,42 @@ export default function Dashboard() {
               </div>
             )}
             
-            {tasksLoading ? (
-              <TaskCardSkeletonGroup count={5} />
-            ) : (
-              <div className="grid gap-3">
-                {tasks.map((task, index) => (
-                  <motion.div
-                    key={task.id}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.1 + index * 0.05 }}
-                  >
-                    <TaskCard
-                      name={task.name}
-                      description={task.description}
-                      weight={task.weight}
-                      completed={task.completed}
-                      onToggle={() => toggleTask(task.id, recalculateStreak)}
-                    />
-                  </motion.div>
-                ))}
-              </div>
-            )}
+            <div className="bg-primary/5 border-2 border-primary/20 rounded-xl p-4">
+              {tasksLoading ? (
+                <TaskCardSkeletonGroup count={5} />
+              ) : (
+                <div className="grid gap-3">
+                  {tasks.map((task, index) => (
+                    <motion.div
+                      key={task.id}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.1 + index * 0.05 }}
+                    >
+                      <TaskCard
+                        name={task.name}
+                        description={task.description}
+                        weight={task.weight}
+                        completed={task.completed}
+                        onToggle={() => toggleTask(task.id, recalculateStreak)}
+                      />
+                    </motion.div>
+                  ))}
+                </div>
+              )}
 
-            {progress === 100 && isViewingToday && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="mt-6 p-6 rounded-2xl bg-primary/10 border border-primary/30 text-center"
-              >
-                <span className="text-4xl mb-2 block">🎉</span>
-                <h3 className="font-display text-xl font-bold text-primary">Day Complete!</h3>
-                <p className="text-muted-foreground mt-1">You crushed it today. See you tomorrow!</p>
-              </motion.div>
-            )}
+              {progress === 100 && isViewingToday && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="mt-4 p-4 rounded-xl bg-primary/10 border border-primary/30 text-center"
+                >
+                  <span className="text-3xl mb-1 block">🎉</span>
+                  <h3 className="font-display text-lg font-bold text-primary">Day Complete!</h3>
+                  <p className="text-sm text-muted-foreground">You crushed it today. See you tomorrow!</p>
+                </motion.div>
+              )}
+            </div>
           </motion.div>
         )}
 
