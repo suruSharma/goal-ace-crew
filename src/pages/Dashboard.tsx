@@ -683,6 +683,61 @@ export default function Dashboard() {
           </div>
         </motion.div>
 
+        {/* Quick Actions - show when challenge exists */}
+        {challenge && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.05 }}
+            className="mb-6 flex flex-wrap items-center gap-3"
+          >
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/challenge-history">
+                <Clock className="w-4 h-4 mr-2" />
+                View History
+              </Link>
+            </Button>
+            {isChallengeComplete && (
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setShowCompletion(true)}
+              >
+                <Trophy className="w-4 h-4 mr-2" />
+                View Completion Summary
+              </Button>
+            )}
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
+                  <RotateCcw className="w-4 h-4 mr-2" />
+                  {isChallengeComplete ? 'Start New' : 'Restart'}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>{isChallengeComplete ? 'Start New Challenge?' : 'Restart Challenge?'}</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    {isChallengeComplete 
+                      ? 'This will start a fresh challenge. Your previous stats will be reset but weight history will be preserved.'
+                      : 'This will delete all your current progress and allow you to start a fresh challenge. Your weight history will be preserved.'
+                    }
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction 
+                    onClick={restartChallenge} 
+                    className={isChallengeComplete ? '' : 'bg-destructive text-destructive-foreground hover:bg-destructive/90'}
+                  >
+                    {isChallengeComplete ? 'Start New' : 'Restart'}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </motion.div>
+        )}
+
         {/* Stats Grid */}
         <div className="grid md:grid-cols-3 gap-6 mb-8">
           {/* Day Counter Card */}
@@ -793,54 +848,6 @@ export default function Dashboard() {
                   longestStreak={longestStreak} 
                   loading={streakLoading} 
                 />
-              </div>
-              <div className="space-y-2 mt-4">
-                {isChallengeComplete && (
-                  <Button 
-                    variant="default" 
-                    size="sm" 
-                    className="w-full"
-                    onClick={() => setShowCompletion(true)}
-                  >
-                    <Trophy className="w-4 h-4 mr-2" />
-                    View Completion Summary
-                  </Button>
-                )}
-                
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="outline" size="sm" className="w-full text-destructive hover:text-destructive">
-                      <RotateCcw className="w-4 h-4 mr-2" />
-                      {isChallengeComplete ? 'Start New Challenge' : 'Restart Challenge'}
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>{isChallengeComplete ? 'Start New Challenge?' : 'Restart Challenge?'}</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        {isChallengeComplete 
-                          ? 'This will start a fresh challenge. Your previous stats will be reset but weight history will be preserved.'
-                          : 'This will delete all your current progress and allow you to start a fresh challenge. Your weight history will be preserved.'
-                        }
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction 
-                        onClick={restartChallenge} 
-                        className={isChallengeComplete ? '' : 'bg-destructive text-destructive-foreground hover:bg-destructive/90'}
-                      >
-                        {isChallengeComplete ? 'Start New' : 'Restart'}
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-                <Button variant="ghost" size="sm" asChild className="w-full">
-                  <Link to="/challenge-history">
-                    <Clock className="w-4 h-4 mr-2" />
-                    View History
-                  </Link>
-                </Button>
               </div>
             </motion.div>
           )}
