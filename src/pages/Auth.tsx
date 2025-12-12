@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ProfileSetupDialog } from '@/components/ProfileSetupDialog';
 import { useToast } from '@/hooks/use-toast';
-import { Flame, Loader2, Mail, Lock, ArrowLeft } from 'lucide-react';
+import { Flame, Loader2, User, Lock, ArrowLeft } from 'lucide-react';
 
 type AuthMode = 'signin' | 'signup' | 'forgot' | 'reset';
 
@@ -80,7 +80,7 @@ export default function Auth() {
     if (!email || !password) {
       toast({
         title: "Error",
-        description: "Please enter email and password",
+        description: "Please enter username and password",
         variant: "destructive"
       });
       return;
@@ -144,7 +144,7 @@ export default function Auth() {
     if (!email) {
       toast({
         title: "Error",
-        description: "Please enter your email",
+        description: "Please enter your username",
         variant: "destructive"
       });
       return;
@@ -278,13 +278,13 @@ export default function Auth() {
           <form onSubmit={handleSubmit} className="space-y-4">
             {mode !== 'reset' && (
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">Username</Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
                     id="email"
                     type="email"
-                    placeholder="you@example.com"
+                    placeholder="your@email.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="pl-10"
