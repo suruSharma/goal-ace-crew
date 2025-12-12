@@ -85,6 +85,12 @@ export default function Profile() {
     return Math.round(bmi * 10) / 10;
   }, [profile.height_cm, profile.current_weight]);
 
+  const goalBMI = useMemo(() => {
+    if (!profile.height_cm || !profile.goal_weight) return null;
+    const bmi = profile.goal_weight / Math.pow(profile.height_cm / 100, 2);
+    return Math.round(bmi * 10) / 10;
+  }, [profile.height_cm, profile.goal_weight]);
+
   const getBMICategory = (bmi: number): string => {
     if (bmi < 18.5) return 'Underweight';
     if (bmi < 25) return 'Normal';
@@ -726,13 +732,26 @@ export default function Profile() {
               </p>
             </div>
 
-            {calculatedBMI && (
-              <div className="p-4 rounded-lg bg-secondary/50 border border-border">
-                <Label className="text-xs text-muted-foreground">Current BMI</Label>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-bold text-primary">{calculatedBMI}</span>
-                  <span className="text-sm text-muted-foreground">({getBMICategory(calculatedBMI)})</span>
-                </div>
+            {(calculatedBMI || goalBMI) && (
+              <div className="grid grid-cols-2 gap-4">
+                {calculatedBMI && (
+                  <div className="p-4 rounded-lg bg-secondary/50 border border-border">
+                    <Label className="text-xs text-muted-foreground">Current BMI</Label>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-3xl font-bold text-primary">{calculatedBMI}</span>
+                      <span className="text-sm text-muted-foreground">({getBMICategory(calculatedBMI)})</span>
+                    </div>
+                  </div>
+                )}
+                {goalBMI && (
+                  <div className="p-4 rounded-lg bg-secondary/50 border border-border">
+                    <Label className="text-xs text-muted-foreground">Goal BMI</Label>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-3xl font-bold text-accent">{goalBMI}</span>
+                      <span className="text-sm text-muted-foreground">({getBMICategory(goalBMI)})</span>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
