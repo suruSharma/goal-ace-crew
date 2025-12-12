@@ -1001,6 +1001,7 @@ export default function Groups() {
             setNewGroupId(null);
             fetchGroups();
           }}
+          trigger={<span className="hidden" />}
         />
       )}
     </div>
