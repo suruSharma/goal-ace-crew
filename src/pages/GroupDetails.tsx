@@ -486,6 +486,8 @@ export default function GroupDetails() {
         <PageHeader 
           title={group.name} 
           icon={<Users className="w-5 h-5 text-primary" />}
+          showBackArrow
+          backPath="/groups"
         />
         
         {/* Group Info Card */}

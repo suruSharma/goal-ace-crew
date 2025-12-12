@@ -101,7 +101,7 @@ export function GlobalNav() {
               )}
             </div>
           </Link>
-          <Button variant="ghost" size="icon" onClick={handleSignOut}>
+          <Button variant="ghost" size="icon" onClick={handleSignOut} className="text-destructive hover:text-destructive hover:bg-destructive/10">
             <LogOut className="w-5 h-5" />
           </Button>
         </div>
