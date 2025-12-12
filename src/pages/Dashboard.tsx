@@ -9,8 +9,10 @@ import { DayCounter } from '@/components/DayCounter';
 import { ProgressRing } from '@/components/ui/progress-ring';
 import { StreakDisplay } from '@/components/StreakDisplay';
 import { useStreak } from '@/hooks/useStreak';
+import { useAchievements } from '@/hooks/useAchievements';
 import { ChallengeSetupDialog } from '@/components/ChallengeSetupDialog';
 import { ChallengeCompletion } from '@/components/ChallengeCompletion';
+import { AchievementsDisplay } from '@/components/AchievementsDisplay';
 import { TaskCardSkeletonGroup } from '@/components/TaskCardSkeleton';
 import { PageLoadingSkeleton } from '@/components/PageLoadingSkeleton';
 import { MotivationalQuote } from '@/components/MotivationalQuote';
@@ -420,6 +422,33 @@ export default function Dashboard() {
   const isChallengeComplete = challenge?.isCompleted || (challenge && challenge.currentDay >= challenge.totalDays && progress === 100);
   
   const { currentStreak, longestStreak, loading: streakLoading } = useStreak(challenge?.id);
+  
+  // Achievements
+  const { 
+    getProgress, 
+    checkAndUnlockAchievements, 
+    unlockedCount, 
+    totalCount,
+    loading: achievementsLoading 
+  } = useAchievements(user?.id);
+
+  // Calculate stats for achievements
+  const userStats = {
+    currentStreak,
+    longestStreak,
+    totalPoints: totalChallengePoints,
+    totalTasks: totalCompletedTasks,
+    completedChallenges: isChallengeComplete ? 1 : 0, // TODO: Track completed challenges count
+  };
+
+  const achievementsWithProgress = getProgress(userStats);
+
+  // Check for new achievements when stats change
+  useEffect(() => {
+    if (user && !achievementsLoading && challenge) {
+      checkAndUnlockAchievements(userStats);
+    }
+  }, [currentStreak, longestStreak, totalChallengePoints, totalCompletedTasks, isChallengeComplete]);
 
   // Check for challenge completion when all tasks are done on final day
   useEffect(() => {
@@ -611,6 +640,21 @@ export default function Dashboard() {
                 </AlertDialog>
               </div>
             )}
+          </motion.div>
+
+          {/* Achievements Card */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25 }}
+            className="bg-card rounded-2xl border border-border p-6"
+          >
+            <AchievementsDisplay
+              achievements={achievementsWithProgress}
+              unlockedCount={unlockedCount}
+              totalCount={totalCount}
+              compact
+            />
           </motion.div>
         </div>
 
