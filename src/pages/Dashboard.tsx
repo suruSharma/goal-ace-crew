@@ -160,12 +160,16 @@ export default function Dashboard() {
 
       // Show completion dialog if challenge just completed and not already shown
       if (isCompleted && !existingChallenge.completion_shown) {
-        setShowCompletion(true);
-        // Mark completion as shown
-        await supabase
+        // Mark completion as shown first to prevent race conditions
+        const { error: updateError } = await supabase
           .from('user_challenges')
           .update({ completion_shown: true })
           .eq('id', existingChallenge.id);
+        
+        // Only show completion dialog if update succeeded
+        if (!updateError) {
+          setShowCompletion(true);
+        }
       }
 
       setViewingDay(actualCurrentDay);
