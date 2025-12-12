@@ -7,10 +7,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { LeaderboardCard } from '@/components/LeaderboardCard';
+import { TaskConfigDialog } from '@/components/TaskConfigDialog';
 import { useToast } from '@/hooks/use-toast';
 import { 
   ArrowLeft, Plus, Users, Copy, LogOut, 
-  Loader2, Trophy, UserPlus
+  Loader2, UserPlus, Settings2
 } from 'lucide-react';
 import {
   Dialog,
@@ -25,6 +26,7 @@ interface Group {
   name: string;
   description: string;
   invite_code: string;
+  created_by: string;
   member_count: number;
 }
 
@@ -85,7 +87,11 @@ export default function Groups() {
               .select('*', { count: 'exact', head: true })
               .eq('group_id', g.id);
             
-            return { ...g, member_count: count || 0 };
+            return { 
+              ...g, 
+              member_count: count || 0,
+              created_by: g.created_by || ''
+            };
           }));
           
           setMyGroups(groupsWithCount);
@@ -426,6 +432,21 @@ export default function Groups() {
                       <Copy className="w-4 h-4 mr-1" />
                       {group.invite_code}
                     </Button>
+                    {group.created_by === user!.id && (
+                      <div onClick={(e) => e.stopPropagation()}>
+                        <TaskConfigDialog
+                          groupId={group.id}
+                          userId={user!.id}
+                          isGroupCreator={true}
+                          onSave={() => fetchLeaderboard(group.id)}
+                          trigger={
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <Settings2 className="w-4 h-4" />
+                            </Button>
+                          }
+                        />
+                      </div>
+                    )}
                     <Button
                       variant="ghost"
                       size="icon"
