@@ -8,10 +8,12 @@ import { TaskCard } from '@/components/TaskCard';
 import { DayCounter } from '@/components/DayCounter';
 import { ProgressRing } from '@/components/ui/progress-ring';
 import { TaskConfigDialog } from '@/components/TaskConfigDialog';
+import { ChallengeSetupDialog } from '@/components/ChallengeSetupDialog';
+import { MotivationalQuote } from '@/components/MotivationalQuote';
 import { useToast } from '@/hooks/use-toast';
 import { 
   Flame, LogOut, Users, Settings, Trophy, 
-  Calendar, TrendingUp, Loader2, Settings2
+  Calendar, TrendingUp, Loader2, Settings2, Rocket
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -27,6 +29,7 @@ interface Task {
 interface Challenge {
   id: string;
   currentDay: number;
+  totalDays: number;
   startDate: string;
 }
 
@@ -38,6 +41,7 @@ export default function Dashboard() {
   const [challenge, setChallenge] = useState<Challenge | null>(null);
   const [loading, setLoading] = useState(true);
   const [profileName, setProfileName] = useState('');
+  const [showSetup, setShowSetup] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -64,8 +68,8 @@ export default function Dashboard() {
         setProfileName(profile.full_name || 'Warrior');
       }
 
-      // Fetch or create challenge
-      let { data: existingChallenge } = await supabase
+      // Check for existing active challenge
+      const { data: existingChallenge } = await supabase
         .from('user_challenges')
         .select('*')
         .eq('user_id', user!.id)
@@ -73,68 +77,21 @@ export default function Dashboard() {
         .maybeSingle();
 
       if (!existingChallenge) {
-        // Create new challenge
-        const { data: newChallenge, error: challengeError } = await supabase
-          .from('user_challenges')
-          .insert({ user_id: user!.id })
-          .select()
-          .single();
-
-        if (challengeError) throw challengeError;
-        existingChallenge = newChallenge;
-
-        // Get default templates and create daily tasks
-        const { data: templates } = await supabase
-          .from('challenge_templates')
-          .select('*')
-          .eq('is_default', true);
-
-        if (templates && templates.length > 0) {
-          const dailyTasks = templates.map(t => ({
-            user_challenge_id: newChallenge.id,
-            template_id: t.id,
-            day_number: 1,
-            completed: false
-          }));
-
-          await supabase.from('daily_tasks').insert(dailyTasks);
-        }
+        // No active challenge - show setup dialog
+        setShowSetup(true);
+        setLoading(false);
+        return;
       }
 
       setChallenge({
         id: existingChallenge.id,
         currentDay: existingChallenge.current_day,
+        totalDays: existingChallenge.total_days || 75,
         startDate: existingChallenge.start_date
       });
 
       // Fetch today's tasks
-      const { data: dailyTasks } = await supabase
-        .from('daily_tasks')
-        .select(`
-          id,
-          completed,
-          template_id,
-          challenge_templates (
-            id,
-            name,
-            description,
-            weight
-          )
-        `)
-        .eq('user_challenge_id', existingChallenge.id)
-        .eq('day_number', existingChallenge.current_day);
-
-      if (dailyTasks) {
-        const formattedTasks = dailyTasks.map((t: any) => ({
-          id: t.id,
-          templateId: t.template_id,
-          name: t.challenge_templates.name,
-          description: t.challenge_templates.description,
-          weight: t.challenge_templates.weight,
-          completed: t.completed
-        }));
-        setTasks(formattedTasks);
-      }
+      await fetchTasks(existingChallenge.id, existingChallenge.current_day);
     } catch (error: any) {
       toast({
         title: "Error loading data",
@@ -144,6 +101,42 @@ export default function Dashboard() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchTasks = async (challengeId: string, dayNumber: number) => {
+    const { data: dailyTasks } = await supabase
+      .from('daily_tasks')
+      .select(`
+        id,
+        completed,
+        template_id,
+        challenge_templates (
+          id,
+          name,
+          description,
+          weight
+        )
+      `)
+      .eq('user_challenge_id', challengeId)
+      .eq('day_number', dayNumber);
+
+    if (dailyTasks) {
+      const formattedTasks = dailyTasks.map((t: any) => ({
+        id: t.id,
+        templateId: t.template_id,
+        name: t.challenge_templates.name,
+        description: t.challenge_templates.description,
+        weight: t.challenge_templates.weight,
+        completed: t.completed
+      }));
+      setTasks(formattedTasks);
+    }
+  };
+
+  const handleChallengeCreated = async (challengeId: string) => {
+    setShowSetup(false);
+    setLoading(true);
+    await fetchData();
   };
 
   const toggleTask = async (taskId: string) => {
@@ -226,18 +219,26 @@ export default function Dashboard() {
       </header>
 
       <main className="container max-w-6xl mx-auto px-4 py-8">
+        {/* Challenge Setup Dialog */}
+        <ChallengeSetupDialog
+          open={showSetup}
+          onOpenChange={setShowSetup}
+          userId={user!.id}
+          onChallengeCreated={handleChallengeCreated}
+        />
+
         {/* Welcome Section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
+          className="mb-6"
         >
           <h1 className="text-2xl md:text-3xl font-display font-bold">
             Hello, {profileName}! 👋
           </h1>
-          <p className="text-muted-foreground mt-1">
-            Stay consistent. Stay disciplined. Stay hard.
-          </p>
+          <div className="mt-3">
+            <MotivationalQuote />
+          </div>
         </motion.div>
 
         {/* Stats Grid */}
@@ -250,8 +251,7 @@ export default function Dashboard() {
             className="md:col-span-2 bg-card rounded-2xl border border-border p-6"
           >
             <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-              <DayCounter currentDay={challenge?.currentDay || 1} />
-              
+              <DayCounter currentDay={challenge?.currentDay || 1} totalDays={challenge?.totalDays || 75} />
               <div className="flex items-center gap-8">
                 <div className="text-center">
                   <div className="flex items-center gap-2 text-primary">
@@ -354,6 +354,16 @@ export default function Dashboard() {
           )}
         </motion.div>
       </main>
+
+      {/* Start New Challenge Button - only show if no challenge */}
+      {!challenge && !showSetup && (
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2">
+          <Button size="lg" onClick={() => setShowSetup(true)}>
+            <Rocket className="w-5 h-5 mr-2" />
+            Start Your Challenge
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
