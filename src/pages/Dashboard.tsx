@@ -158,9 +158,14 @@ export default function Dashboard() {
       // Calculate total stats for the challenge
       await fetchChallengeStats(existingChallenge.id);
 
-      // Show completion dialog if challenge just completed
-      if (isCompleted && actualCurrentDay === (existingChallenge.total_days || 75)) {
+      // Show completion dialog if challenge just completed and not already shown
+      if (isCompleted && !existingChallenge.completion_shown) {
         setShowCompletion(true);
+        // Mark completion as shown
+        await supabase
+          .from('user_challenges')
+          .update({ completion_shown: true })
+          .eq('id', existingChallenge.id);
       }
 
       setViewingDay(actualCurrentDay);
@@ -580,10 +585,18 @@ export default function Dashboard() {
 
   // Check for challenge completion when all tasks are done on final day
   useEffect(() => {
-    if (challenge && !challenge.isCompleted && challenge.currentDay >= challenge.totalDays && progress === 100 && isViewingToday) {
-      setShowCompletion(true);
-      setChallenge(prev => prev ? { ...prev, isCompleted: true } : null);
-    }
+    const markCompletionShown = async () => {
+      if (challenge && !challenge.isCompleted && challenge.currentDay >= challenge.totalDays && progress === 100 && isViewingToday) {
+        setShowCompletion(true);
+        setChallenge(prev => prev ? { ...prev, isCompleted: true } : null);
+        // Mark completion as shown in DB
+        await supabase
+          .from('user_challenges')
+          .update({ completion_shown: true })
+          .eq('id', challenge.id);
+      }
+    };
+    markCompletionShown();
   }, [challenge, progress, isViewingToday]);
 
   if (authLoading || loading) {
