@@ -155,23 +155,7 @@ export default function Achievements() {
     return <PageLoadingSkeleton />;
   }
 
-  return (
-    <div className="min-h-screen bg-background">
-      <AppHeader 
-        title="Achievements" 
-        icon={<Trophy className="w-6 h-6 text-primary" />}
-      >
-        <Button variant="outline" size="sm" asChild>
-          <Link to="/achievements/leaderboard" className="gap-2">
-            <Users className="w-4 h-4" />
-            Leaderboard
-          </Link>
-        </Button>
-        <Badge variant="secondary" className="text-sm">
-          {unlockedIds.size} / {achievements.length}
-        </Badge>
-      </AppHeader>
-
+    <>
       <main className="container max-w-4xl mx-auto px-4 py-8 space-y-8">
         {/* Category Filters */}
         <div className="flex flex-wrap gap-2">
@@ -330,6 +314,6 @@ export default function Achievements() {
           </Card>
         )}
       </main>
-    </div>
+    </>
   );
 }

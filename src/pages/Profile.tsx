@@ -583,13 +583,7 @@ export default function Profile() {
     return <SimpleLoadingSkeleton />;
   }
 
-  return (
-    <div className="min-h-screen bg-background">
-      <AppHeader 
-        title="Profile Settings" 
-        icon={<User className="w-5 h-5 text-primary" />}
-      />
-
+    <>
       <main className="container max-w-2xl mx-auto px-4 py-8 space-y-6">
         <div
           className="bg-card rounded-2xl border border-border p-6 animate-fade-in"
@@ -1013,6 +1007,6 @@ export default function Profile() {
           </AlertDialog>
         </div>
       </main>
-    </div>
+    </>
   );
 }

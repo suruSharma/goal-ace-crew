@@ -620,49 +620,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border">
-        <div className="container max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/30 flex items-center justify-center">
-              <Flame className="w-5 h-5 text-primary" />
-            </div>
-            <span className="font-display font-bold text-xl">75 Hard</span>
-          </div>
-          
-          <nav className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" asChild>
-              <Link to="/challenge-history">
-                <Clock className="w-5 h-5" />
-              </Link>
-            </Button>
-            <Button variant="ghost" size="icon" asChild>
-              <Link to="/achievements">
-                <Trophy className="w-5 h-5" />
-              </Link>
-            </Button>
-            <Button variant="ghost" size="icon" asChild>
-              <Link to="/groups">
-                <Users className="w-5 h-5" />
-              </Link>
-            </Button>
-            <Link to="/profile">
-              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-primary/50 flex items-center justify-center text-primary-foreground font-semibold overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary/30 transition-all">
-                {avatarUrl ? (
-                  <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
-                ) : (
-                  <span className="text-sm">{profileName?.charAt(0)?.toUpperCase() || 'U'}</span>
-                )}
-              </div>
-            </Link>
-            <Button variant="ghost" size="icon" onClick={handleSignOut}>
-              <LogOut className="w-5 h-5" />
-            </Button>
-          </nav>
-        </div>
-      </header>
-
+    <>
       <main className="container max-w-6xl mx-auto px-4 py-8">
         {/* Challenge Setup Dialog */}
         <ChallengeSetupDialog
@@ -1038,6 +996,6 @@ export default function Dashboard() {
           </Button>
         </div>
       )}
-    </div>
+    </>
   );
 }

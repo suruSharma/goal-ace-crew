@@ -101,13 +101,7 @@ export default function AchievementLeaderboard() {
 
   const currentUserEntry = leaderboard.find(entry => entry.user_id === user?.id);
 
-  return (
-    <div className="min-h-screen bg-background">
-      <AppHeader 
-        title="Leaderboard" 
-        icon={<Trophy className="w-6 h-6 text-primary" />}
-      />
-
+    <>
       <main className="container max-w-4xl mx-auto px-4 py-8 space-y-6">
         {/* Time Period Filters */}
         <div className="flex flex-wrap gap-2">
@@ -244,6 +238,6 @@ export default function AchievementLeaderboard() {
           </div>
         )}
       </main>
-    </div>
+    </>
   );
 }
