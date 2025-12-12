@@ -7,7 +7,18 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Save, Loader2, User, Scale, Target, Calendar } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, User, Scale, Target, Calendar, Trash2 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 interface ProfileData {
   full_name: string;
@@ -17,11 +28,12 @@ interface ProfileData {
 }
 
 export default function Profile() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, signOut } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [profile, setProfile] = useState<ProfileData>({
     full_name: '',
     birthdate: '',
@@ -100,6 +112,58 @@ export default function Profile() {
     }
   };
 
+  const handleDeleteProfile = async () => {
+    setDeleting(true);
+    try {
+      // Delete user's challenges and related data first
+      const { data: challenges } = await supabase
+        .from('user_challenges')
+        .select('id')
+        .eq('user_id', user!.id);
+
+      if (challenges && challenges.length > 0) {
+        const challengeIds = challenges.map(c => c.id);
+        await supabase
+          .from('daily_tasks')
+          .delete()
+          .in('user_challenge_id', challengeIds);
+        
+        await supabase
+          .from('user_challenges')
+          .delete()
+          .eq('user_id', user!.id);
+      }
+
+      // Delete group memberships
+      await supabase
+        .from('group_members')
+        .delete()
+        .eq('user_id', user!.id);
+
+      // Delete profile
+      await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', user!.id);
+
+      toast({
+        title: "Profile deleted",
+        description: "Your profile and all associated data have been deleted."
+      });
+
+      await signOut();
+      navigate('/auth');
+    } catch (error: any) {
+      toast({
+        title: "Error deleting profile",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -121,7 +185,7 @@ export default function Profile() {
         </div>
       </header>
 
-      <main className="container max-w-2xl mx-auto px-4 py-8">
+      <main className="container max-w-2xl mx-auto px-4 py-8 space-y-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -221,6 +285,51 @@ export default function Profile() {
               )}
             </Button>
           </div>
+        </motion.div>
+
+        {/* Danger Zone */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="bg-card rounded-2xl border border-destructive/30 p-6"
+        >
+          <h3 className="font-display font-bold text-lg text-destructive mb-2">Danger Zone</h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            Once you delete your profile, there is no going back. All your data including challenges, tasks, and group memberships will be permanently deleted.
+          </p>
+          
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" className="w-full" disabled={deleting}>
+                {deleting ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <>
+                    <Trash2 className="w-5 h-5 mr-2" />
+                    Delete Profile
+                  </>
+                )}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action cannot be undone. This will permanently delete your profile, all your challenges, tasks, and remove you from all groups.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleDeleteProfile}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Delete Profile
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </motion.div>
       </main>
     </div>
