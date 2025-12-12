@@ -1,169 +1,14 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Quote, Heart } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
-export const quotes = [
-  // Navy SEALs & Military
-  { text: "The only easy day was yesterday.", author: "Navy SEALs" },
-  
-  // Leaders & Historical Figures
-  { text: "Discipline is choosing between what you want now and what you want most.", author: "Abraham Lincoln" },
-  { text: "The difference between try and triumph is just a little umph!", author: "Marvin Phillips" },
-  { text: "Mental toughness is doing the right thing for the team when it is not the best thing for you.", author: "Bill Belichick" },
-  { text: "Success is the sum of small efforts, repeated day in and day out.", author: "Robert Collier" },
-  { text: "The only way to do great work is to love what you do.", author: "Steve Jobs" },
-  { text: "Strength does not come from physical capacity. It comes from an indomitable will.", author: "Mahatma Gandhi" },
-  { text: "The body achieves what the mind believes.", author: "Napoleon Hill" },
-  { text: "Hard work beats talent when talent does not work hard.", author: "Tim Notke" },
-  { text: "The struggle you are in today is developing the strength you need for tomorrow.", author: "Robert Tew" },
-  { text: "Stay hard.", author: "David Goggins" },
-  { text: "Who is gonna carry the boats?", author: "David Goggins" },
-  
-  // Athletes
-  { text: "I have failed over and over again in my life. And that is why I succeed.", author: "Michael Jordan" },
-  { text: "The more difficult the victory, the greater the happiness in winning.", author: "Pelé" },
-  { text: "Excellence is not a singular act, but a habit. You are what you repeatedly do.", author: "Shaquille O'Neal" },
-  { text: "Set your goals high, and do not stop till you get there.", author: "Bo Jackson" },
-  { text: "If you are afraid of failure, you do not deserve to be successful.", author: "Charles Barkley" },
-  { text: "Impossible is just a big word thrown around by small men.", author: "Muhammad Ali" },
-  { text: "Float like a butterfly, sting like a bee.", author: "Muhammad Ali" },
-  { text: "I am not the greatest, I am the double greatest.", author: "Muhammad Ali" },
-  { text: "Suffer now and live the rest of your life as a champion.", author: "Muhammad Ali" },
-  { text: "The fight is won or lost far away from witnesses.", author: "Muhammad Ali" },
-  { text: "Do not count the days, make the days count.", author: "Muhammad Ali" },
-  { text: "Age is whatever you think it is. You are as old as you think you are.", author: "Muhammad Ali" },
-  { text: "It is not the will to win that matters. Everyone has that. It is the will to prepare to win.", author: "Paul Bear Bryant" },
-  { text: "Winning is not everything, but wanting to win is.", author: "Vince Lombardi" },
-  { text: "The price of excellence is discipline. The cost of mediocrity is disappointment.", author: "William Arthur Ward" },
-  { text: "Gold medals are not really made of gold. They are made of sweat and determination.", author: "Dan Gable" },
-  { text: "You miss 100% of the shots you do not take.", author: "Wayne Gretzky" },
-  { text: "I hated every minute of training, but I said do not quit.", author: "Muhammad Ali" },
-  { text: "The only way to prove you are a good sport is to lose.", author: "Ernie Banks" },
-  { text: "Pain is temporary. Quitting lasts forever.", author: "Lance Armstrong" },
-  { text: "There may be people that have more talent than you, but there is no excuse for anyone to work harder.", author: "Derek Jeter" },
-  { text: "Today I will do what others will not, so tomorrow I can accomplish what others cannot.", author: "Jerry Rice" },
-  { text: "When you want to succeed as bad as you want to breathe, then you will be successful.", author: "Eric Thomas" },
-  { text: "The successful warrior is the average man, with laser-like focus.", author: "Bruce Lee" },
-  { text: "I fear not the man who has practiced 10,000 kicks once, but the man who has practiced one kick 10,000 times.", author: "Bruce Lee" },
-  { text: "Defeat is not the worst of failures. Not to have tried is the true failure.", author: "George Edward Woodberry" },
-  { text: "A champion is someone who gets up when they cannot.", author: "Jack Dempsey" },
-  
-  // Entrepreneurs
-  { text: "The way to get started is to quit talking and begin doing.", author: "Walt Disney" },
-  { text: "Your time is limited, do not waste it living someone else is life.", author: "Steve Jobs" },
-  { text: "Innovation distinguishes between a leader and a follower.", author: "Steve Jobs" },
-  { text: "Stay hungry. Stay foolish.", author: "Steve Jobs" },
-  { text: "Move fast and break things. Unless you are breaking stuff, you are not moving fast enough.", author: "Mark Zuckerberg" },
-  { text: "The biggest risk is not taking any risk.", author: "Mark Zuckerberg" },
-  { text: "It is fine to celebrate success but it is more important to heed the lessons of failure.", author: "Bill Gates" },
-  { text: "Do not be afraid to give up the good to go for the great.", author: "John D. Rockefeller" },
-  { text: "I never dreamed about success. I worked for it.", author: "Estée Lauder" },
-  { text: "The question is not who is going to let me; it is who is going to stop me.", author: "Ayn Rand" },
-  { text: "If you are not embarrassed by the first version of your product, you have launched too late.", author: "Reid Hoffman" },
-  { text: "Chase the vision, not the money; the money will end up following you.", author: "Tony Hsieh" },
-  { text: "When something is important enough, you do it even if the odds are not in your favor.", author: "Elon Musk" },
-  { text: "Failure is an option here. If things are not failing, you are not innovating enough.", author: "Elon Musk" },
-  { text: "If you want to live a happy life, tie it to a goal, not to people or things.", author: "Albert Einstein" },
-  { text: "Do not be distracted by criticism. Remember, the only taste of success some people get is to take a bite out of you.", author: "Zig Ziglar" },
-  { text: "Winners are not afraid of losing. But losers are.", author: "Robert Kiyosaki" },
-  { text: "I am convinced that about half of what separates successful entrepreneurs from the non-successful ones is pure perseverance.", author: "Steve Jobs" },
-  { text: "If you really look closely, most overnight successes took a long time.", author: "Steve Jobs" },
-  { text: "The only limit to our realization of tomorrow is our doubts of today.", author: "Franklin D. Roosevelt" },
-  
-  // Philosophers
-  { text: "We are what we repeatedly do. Excellence, then, is not an act, but a habit.", author: "Aristotle" },
-  { text: "No man is free who is not master of himself.", author: "Epictetus" },
-  { text: "The impediment to action advances action. What stands in the way becomes the way.", author: "Marcus Aurelius" },
-  { text: "You have power over your mind, not outside events. Realize this, and you will find strength.", author: "Marcus Aurelius" },
-  { text: "Waste no more time arguing about what a good man should be. Be one.", author: "Marcus Aurelius" },
-  { text: "It is not death that a man should fear, but he should fear never beginning to live.", author: "Marcus Aurelius" },
-  { text: "Very little is needed to make a happy life; it is all within yourself, in your way of thinking.", author: "Marcus Aurelius" },
-  { text: "First say to yourself what you would be; and then do what you have to do.", author: "Epictetus" },
-  { text: "Difficulties strengthen the mind, as labor does the body.", author: "Seneca" },
-  { text: "It is not that we have a short time to live, but that we waste a lot of it.", author: "Seneca" },
-  { text: "Luck is what happens when preparation meets opportunity.", author: "Seneca" },
-  { text: "He who has a why to live can bear almost any how.", author: "Friedrich Nietzsche" },
-  { text: "That which does not kill us makes us stronger.", author: "Friedrich Nietzsche" },
-  { text: "The secret of change is to focus all your energy not on fighting the old, but on building the new.", author: "Socrates" },
-  { text: "An unexamined life is not worth living.", author: "Socrates" },
-  { text: "To find yourself, think for yourself.", author: "Socrates" },
-  { text: "Knowing yourself is the beginning of all wisdom.", author: "Aristotle" },
-  { text: "Happiness depends upon ourselves.", author: "Aristotle" },
-  { text: "Quality is not an act, it is a habit.", author: "Aristotle" },
-  { text: "I think therefore I am.", author: "René Descartes" },
-  { text: "The mind is everything. What you think you become.", author: "Buddha" },
-  { text: "Peace comes from within. Do not seek it without.", author: "Buddha" },
-  { text: "The only true wisdom is in knowing you know nothing.", author: "Socrates" },
-  { text: "Out of difficulties grow miracles.", author: "Jean de La Bruyère" },
-  { text: "Patience is bitter, but its fruit is sweet.", author: "Aristotle" },
-  { text: "Begin at once to live, and count each separate day as a separate life.", author: "Seneca" },
-  { text: "A gem cannot be polished without friction, nor a man perfected without trials.", author: "Seneca" },
-  { text: "Associate with people who are likely to improve you.", author: "Seneca" },
-  { text: "The soul becomes dyed with the color of its thoughts.", author: "Marcus Aurelius" },
-  { text: "When we are no longer able to change a situation, we are challenged to change ourselves.", author: "Viktor Frankl" },
-  { text: "Everything can be taken from a man but one thing: the freedom to choose his attitude.", author: "Viktor Frankl" },
-  
-  // Indian Authors & Leaders
-  { text: "You must be the change you wish to see in the world.", author: "Mahatma Gandhi" },
-  { text: "Live as if you were to die tomorrow. Learn as if you were to live forever.", author: "Mahatma Gandhi" },
-  { text: "The future depends on what you do today.", author: "Mahatma Gandhi" },
-  { text: "In a gentle way, you can shake the world.", author: "Mahatma Gandhi" },
-  { text: "Arise, awake, and stop not till the goal is reached.", author: "Swami Vivekananda" },
-  { text: "All the powers in the universe are already ours. It is we who have put our hands before our eyes and cry that it is dark.", author: "Swami Vivekananda" },
-  { text: "Take risks in your life. If you win, you can lead. If you lose, you can guide.", author: "Swami Vivekananda" },
-  { text: "You cannot believe in God until you believe in yourself.", author: "Swami Vivekananda" },
-  { text: "The greatest sin is to think yourself weak.", author: "Swami Vivekananda" },
-  { text: "Dream, dream, dream. Dreams transform into thoughts and thoughts result in action.", author: "A.P.J. Abdul Kalam" },
-  { text: "If you want to shine like a sun, first burn like a sun.", author: "A.P.J. Abdul Kalam" },
-  { text: "Do not read success stories, you will only get a message. Read failure stories, you will get some ideas to get success.", author: "A.P.J. Abdul Kalam" },
-  { text: "Man needs difficulties because to enjoy success he needs to struggle first.", author: "A.P.J. Abdul Kalam" },
-  { text: "All birds find shelter during rain. But the eagle avoids rain by flying above the clouds.", author: "A.P.J. Abdul Kalam" },
-  { text: "You have to dream before your dreams can come true.", author: "A.P.J. Abdul Kalam" },
-  { text: "Where there is a will, there is a way.", author: "Rabindranath Tagore" },
-  { text: "You cannot cross the sea merely by standing and staring at the water.", author: "Rabindranath Tagore" },
-  { text: "The butterfly counts not months but moments, and has time enough.", author: "Rabindranath Tagore" },
-  { text: "Faith is the bird that feels the light when the dawn is still dark.", author: "Rabindranath Tagore" },
-  { text: "A person who never made a mistake never tried anything new.", author: "Chanakya" },
-  { text: "Education is the best friend. An educated person is respected everywhere.", author: "Chanakya" },
-  { text: "Once you start working on something, do not be afraid of failure and do not abandon it.", author: "Chanakya" },
-  { text: "The world is changed by your example, not by your opinion.", author: "Chanakya" },
-  { text: "If you do not build your dream, someone else will hire you to help them build theirs.", author: "Dhirubhai Ambani" },
-  { text: "Think big, think fast, think ahead. Ideas are no one is monopoly.", author: "Dhirubhai Ambani" },
-  { text: "Between your preparation and your ambition lies the reality.", author: "Dhirubhai Ambani" },
-  { text: "I give importance to hard work and not to the talent.", author: "Ratan Tata" },
-  { text: "Take the stones people throw at you and use them to build a monument.", author: "Ratan Tata" },
-  { text: "Ups and downs in life are very important to keep us going, because a straight line even in an ECG means we are not alive.", author: "Ratan Tata" },
-  { text: "None can destroy iron, but its own rust can. Likewise, none can destroy a person, but his own mindset can.", author: "Ratan Tata" },
-  { text: "The only thing standing between you and your goal is the story you keep telling yourself.", author: "Sadhguru" },
-  { text: "If you resist change, you resist life.", author: "Sadhguru" },
-  { text: "Do not wait for the perfect moment. Take the moment and make it perfect.", author: "Sadhguru" },
-  
-  // Indian Sports Personalities
-  { text: "I have never tried to compare myself with anyone else. I just try to do my best.", author: "Sachin Tendulkar" },
-  { text: "People throw stones at you and you convert them into milestones.", author: "Sachin Tendulkar" },
-  { text: "Chase your dreams because dreams do come true.", author: "Sachin Tendulkar" },
-  { text: "When people throw stones at you, turn them into milestones.", author: "Sachin Tendulkar" },
-  { text: "Enjoy the game and chase your dreams. Dreams do come true.", author: "Sachin Tendulkar" },
-  { text: "Self-belief and hard work will always earn you success.", author: "Virat Kohli" },
-  { text: "I just want to keep improving and keep winning for my team.", author: "Virat Kohli" },
-  { text: "Pressure is something you feel when you do not know what you are doing.", author: "Virat Kohli" },
-  { text: "Your attitude determines your direction.", author: "Virat Kohli" },
-  { text: "If you have the courage to face your fears, you have already won.", author: "Virat Kohli" },
-  { text: "The process is more important than the result.", author: "MS Dhoni" },
-  { text: "You do not play for the crowd, you play for the country.", author: "MS Dhoni" },
-  { text: "I believe in giving more than 100 percent on the field.", author: "MS Dhoni" },
-  { text: "Learn to remain calm and composed under pressure.", author: "MS Dhoni" },
-  { text: "Face the failures with a smile. The winners make it happen.", author: "MS Dhoni" },
-  { text: "Fitness is not about being better than someone else. It is about being better than you used to be.", author: "MS Dhoni" },
-  { text: "You learn a lot more when you are going through a tough time than when you are on top.", author: "MS Dhoni" },
-  { text: "Dream big and dare to fail.", author: "PV Sindhu" },
-  { text: "Success is not final and failure is not fatal. It is courage that counts.", author: "PV Sindhu" },
-  { text: "In the end, it is about how much you sacrifice for your goal.", author: "Mary Kom" },
-  { text: "I do not want to be known as a woman boxer. I want to be known as a great boxer.", author: "Mary Kom" },
-  { text: "Do not limit your challenges. Challenge your limits.", author: "Neeraj Chopra" },
-];
+interface Quote {
+  id: string;
+  text: string;
+  author: string;
+}
 
 interface MotivationalQuoteProps {
   userId?: string;
@@ -173,17 +18,34 @@ export function MotivationalQuote({ userId }: MotivationalQuoteProps) {
   const { toast } = useToast();
   const [isFavorite, setIsFavorite] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [quote, setQuote] = useState<Quote | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  // Use session-based random selection (changes on each login/page refresh)
-  const quote = useMemo(() => {
-    const randomIndex = Math.floor(Math.random() * quotes.length);
-    return quotes[randomIndex];
+  // Fetch a random quote from the database
+  useEffect(() => {
+    const fetchRandomQuote = async () => {
+      const { data, error } = await supabase
+        .from('quotes')
+        .select('id, text, author');
+      
+      if (error || !data || data.length === 0) {
+        console.error('Error fetching quotes:', error);
+        setLoading(false);
+        return;
+      }
+      
+      const randomIndex = Math.floor(Math.random() * data.length);
+      setQuote(data[randomIndex]);
+      setLoading(false);
+    };
+    
+    fetchRandomQuote();
   }, []);
 
   // Check if this quote is already a favorite
   useEffect(() => {
     const checkFavorite = async () => {
-      if (!userId) return;
+      if (!userId || !quote) return;
       const { data } = await supabase
         .from('favorite_quotes')
         .select('id')
@@ -193,10 +55,10 @@ export function MotivationalQuote({ userId }: MotivationalQuoteProps) {
       setIsFavorite(!!data);
     };
     checkFavorite();
-  }, [userId, quote.text]);
+  }, [userId, quote]);
 
   const toggleFavorite = async () => {
-    if (!userId) return;
+    if (!userId || !quote) return;
     setSaving(true);
 
     try {
@@ -232,6 +94,19 @@ export function MotivationalQuote({ userId }: MotivationalQuoteProps) {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="p-4 rounded-xl bg-primary/5 border border-primary/20 animate-pulse">
+        <div className="h-4 bg-primary/10 rounded w-3/4 mb-2"></div>
+        <div className="h-3 bg-primary/10 rounded w-1/4 ml-auto"></div>
+      </div>
+    );
+  }
+
+  if (!quote) {
+    return null;
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -262,8 +137,10 @@ export function MotivationalQuote({ userId }: MotivationalQuoteProps) {
             >
               <Heart 
                 className={`w-4 h-4 transition-colors ${
-                  isFavorite ? 'fill-red-500 text-red-500' : 'text-muted-foreground hover:text-red-500'
-                }`} 
+                  isFavorite 
+                    ? 'fill-red-500 text-red-500' 
+                    : 'text-muted-foreground hover:text-red-400'
+                }`}
               />
             </motion.div>
           </AnimatePresence>
