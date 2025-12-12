@@ -689,16 +689,6 @@ export default function Dashboard() {
             transition={{ delay: 0.05 }}
             className="mb-6 flex flex-wrap items-center gap-3"
           >
-            {isChallengeComplete && (
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => setShowCompletion(true)}
-              >
-                <Trophy className="w-4 h-4 mr-2" />
-                View Completion Summary
-              </Button>
-            )}
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
