@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
 import { useAuth } from '@/hooks/useAuth';
@@ -10,7 +10,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { ArrowLeft, Save, Loader2, User, Scale, Target, CalendarIcon, Trash2, Ruler, Plus } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, User, Scale, Target, CalendarIcon, Trash2, Ruler, Plus, Camera } from 'lucide-react';
 import { WeightProgressChart } from '@/components/WeightProgressChart';
 import {
   AlertDialog,
@@ -37,6 +37,7 @@ interface ProfileData {
   current_weight: number | null;
   goal_weight: number | null;
   height_cm: number | null;
+  avatar_url: string | null;
 }
 
 interface WeightEntry {
@@ -49,15 +50,18 @@ export default function Profile() {
   const { user, loading: authLoading, signOut } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [profile, setProfile] = useState<ProfileData>({
     full_name: '',
     birthdate: '',
     current_weight: null,
     goal_weight: null,
-    height_cm: null
+    height_cm: null,
+    avatar_url: null
   });
   const [weightHistory, setWeightHistory] = useState<WeightEntry[]>([]);
   const [newWeight, setNewWeight] = useState('');
@@ -94,7 +98,7 @@ export default function Profile() {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('full_name, birthdate, current_weight, goal_weight, height_cm')
+        .select('full_name, birthdate, current_weight, goal_weight, height_cm, avatar_url')
         .eq('id', user!.id)
         .maybeSingle();
 
@@ -106,7 +110,8 @@ export default function Profile() {
           birthdate: data.birthdate || '',
           current_weight: data.current_weight,
           goal_weight: data.goal_weight,
-          height_cm: data.height_cm
+          height_cm: data.height_cm,
+          avatar_url: data.avatar_url
         });
       }
     } catch (error: any) {
@@ -117,6 +122,72 @@ export default function Profile() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !user) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Invalid file",
+        description: "Please select an image file",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please select an image under 5MB",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setUploadingAvatar(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const filePath = `${user.id}/avatar.${fileExt}`;
+
+      // Upload to storage
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      // Update profile with avatar URL
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: publicUrl })
+        .eq('id', user.id);
+
+      if (updateError) throw updateError;
+
+      setProfile(p => ({ ...p, avatar_url: publicUrl }));
+
+      toast({
+        title: "Avatar updated!",
+        description: "Your profile picture has been updated."
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error uploading avatar",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setUploadingAvatar(false);
     }
   };
 
@@ -291,8 +362,36 @@ export default function Profile() {
           className="bg-card rounded-2xl border border-border p-6 animate-fade-in"
         >
           <div className="flex items-center gap-4 mb-8">
-            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary to-primary/50 flex items-center justify-center text-primary-foreground text-2xl font-bold">
-              {profile.full_name?.charAt(0)?.toUpperCase() || 'U'}
+            <div className="relative group">
+              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary to-primary/50 flex items-center justify-center text-primary-foreground text-2xl font-bold overflow-hidden">
+                {profile.avatar_url ? (
+                  <img 
+                    src={profile.avatar_url} 
+                    alt="Profile" 
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  profile.full_name?.charAt(0)?.toUpperCase() || 'U'
+                )}
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleAvatarUpload}
+                className="hidden"
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingAvatar}
+                className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer"
+              >
+                {uploadingAvatar ? (
+                  <Loader2 className="w-6 h-6 text-white animate-spin" />
+                ) : (
+                  <Camera className="w-6 h-6 text-white" />
+                )}
+              </button>
             </div>
             <div>
               <h2 className="font-display text-2xl font-bold">{profile.full_name || 'Your Profile'}</h2>
