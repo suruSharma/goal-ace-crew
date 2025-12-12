@@ -11,6 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { ArrowLeft, Save, Loader2, User, Scale, Target, CalendarIcon, Trash2, Ruler, Plus, Camera, Users, AlertTriangle, Heart, Mail, Palette } from 'lucide-react';
+import { AppHeader } from '@/components/AppHeader';
 import { ThemeSettings } from '@/components/ThemeSettings';
 import { WeightProgressChart } from '@/components/WeightProgressChart';
 import { FavoriteQuotes } from '@/components/FavoriteQuotes';
@@ -551,16 +552,10 @@ export default function Profile() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b border-border">
-        <div className="container max-w-2xl mx-auto px-4 py-4 flex items-center gap-4">
-          <Button variant="ghost" size="icon" asChild>
-            <Link to="/dashboard">
-              <ArrowLeft className="w-5 h-5" />
-            </Link>
-          </Button>
-          <h1 className="font-display font-bold text-xl">Profile Settings</h1>
-        </div>
-      </header>
+      <AppHeader 
+        title="Profile Settings" 
+        icon={<User className="w-5 h-5 text-primary" />}
+      />
 
       <main className="container max-w-2xl mx-auto px-4 py-8 space-y-6">
         <div

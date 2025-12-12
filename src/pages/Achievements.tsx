@@ -11,9 +11,10 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { PageLoadingSkeleton } from '@/components/PageLoadingSkeleton';
 import { AchievementIcon } from '@/components/AchievementIcon';
+import { AppHeader } from '@/components/AppHeader';
 import { 
-  Flame, ArrowLeft, Trophy, Lock, Unlock, 
-  Filter, Zap, Target, Star, Award, Users
+  Flame, Trophy, Lock, Unlock, 
+  Zap, Target, Star, Award, Users
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -156,34 +157,20 @@ export default function Achievements() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border">
-        <div className="container max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" asChild>
-              <Link to="/dashboard">
-                <ArrowLeft className="w-5 h-5" />
-              </Link>
-            </Button>
-            <div className="flex items-center gap-2">
-              <Trophy className="w-6 h-6 text-primary" />
-              <span className="font-display font-bold text-xl">Achievements</span>
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" asChild>
-              <Link to="/achievements/leaderboard" className="gap-2">
-                <Users className="w-4 h-4" />
-                Leaderboard
-              </Link>
-            </Button>
-            <Badge variant="secondary" className="text-sm">
-              {unlockedIds.size} / {achievements.length}
-            </Badge>
-          </div>
-        </div>
-      </header>
+      <AppHeader 
+        title="Achievements" 
+        icon={<Trophy className="w-6 h-6 text-primary" />}
+      >
+        <Button variant="outline" size="sm" asChild>
+          <Link to="/achievements/leaderboard" className="gap-2">
+            <Users className="w-4 h-4" />
+            Leaderboard
+          </Link>
+        </Button>
+        <Badge variant="secondary" className="text-sm">
+          {unlockedIds.size} / {achievements.length}
+        </Badge>
+      </AppHeader>
 
       <main className="container max-w-4xl mx-auto px-4 py-8 space-y-8">
         {/* Category Filters */}
