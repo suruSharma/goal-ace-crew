@@ -87,6 +87,7 @@ export default function GroupDetails() {
   const [submittingComment, setSubmittingComment] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -429,6 +430,46 @@ export default function GroupDetails() {
     }
   };
 
+  const deleteGroup = async () => {
+    setDeleting(true);
+    try {
+      // Delete group members first
+      await supabase
+        .from('group_members')
+        .delete()
+        .eq('group_id', groupId);
+
+      // Delete group challenges/tasks
+      await supabase
+        .from('challenges')
+        .delete()
+        .eq('group_id', groupId);
+
+      // Delete the group
+      const { error } = await supabase
+        .from('groups')
+        .delete()
+        .eq('id', groupId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Group deleted",
+        description: "The draft group has been deleted."
+      });
+      
+      navigate('/groups');
+    } catch (error: any) {
+      toast({
+        title: "Error deleting group",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   if (authLoading || loading) {
     return <SimpleLoadingSkeleton />;
   }
@@ -487,6 +528,32 @@ export default function GroupDetails() {
                       </>
                     )}
                   </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="outline" size="sm" className="text-destructive">
+                        <Trash2 className="w-4 h-4 mr-1" />
+                        Delete
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete this group?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This will permanently delete the draft group and all its configuration. This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={deleteGroup}
+                          disabled={deleting}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Delete Group"}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </>
               )}
               {!isOwner && (
