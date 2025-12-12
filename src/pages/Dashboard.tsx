@@ -581,11 +581,10 @@ export default function Dashboard() {
     }
   }, [currentStreak, longestStreak, totalChallengePoints, totalCompletedTasks, isChallengeComplete]);
 
-  // Check for challenge completion when all tasks are done on final day
+  // Check for challenge completion when all tasks are done on final day (mark as complete but don't show popup)
   useEffect(() => {
-    const markCompletionShown = async () => {
+    const markChallengeComplete = async () => {
       if (challenge && !challenge.isCompleted && challenge.currentDay >= challenge.totalDays && progress === 100 && isViewingToday) {
-        setShowCompletion(true);
         setChallenge(prev => prev ? { ...prev, isCompleted: true } : null);
         // Mark completion as shown in DB
         await supabase
@@ -594,7 +593,7 @@ export default function Dashboard() {
           .eq('id', challenge.id);
       }
     };
-    markCompletionShown();
+    markChallengeComplete();
   }, [challenge, progress, isViewingToday]);
 
   if (authLoading || loading) {
