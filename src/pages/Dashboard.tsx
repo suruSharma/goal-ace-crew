@@ -614,6 +614,11 @@ export default function Dashboard() {
           
           <nav className="flex items-center gap-2">
             <Button variant="ghost" size="icon" asChild>
+              <Link to="/challenge-history">
+                <Clock className="w-5 h-5" />
+              </Link>
+            </Button>
+            <Button variant="ghost" size="icon" asChild>
               <Link to="/achievements">
                 <Trophy className="w-5 h-5" />
               </Link>
@@ -684,12 +689,6 @@ export default function Dashboard() {
             transition={{ delay: 0.05 }}
             className="mb-6 flex flex-wrap items-center gap-3"
           >
-            <Button variant="outline" size="sm" asChild>
-              <Link to="/challenge-history">
-                <Clock className="w-4 h-4 mr-2" />
-                View History
-              </Link>
-            </Button>
             {isChallengeComplete && (
               <Button 
                 variant="outline" 
