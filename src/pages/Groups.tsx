@@ -852,25 +852,18 @@ export default function Groups() {
             </p>
           </motion.div>
         ) : (
-          <div className="grid md:grid-cols-3 gap-6">
-            {/* Groups List */}
-            <div className="space-y-4">
-              <h2 className="font-display font-semibold text-lg">My Groups</h2>
+          <div className="space-y-4">
+            <h2 className="font-display font-semibold text-lg">My Groups</h2>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {myGroups.map((group) => (
                 <motion.div
                   key={group.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  onClick={() => {
-                    navigate(`/groups/${group.id}`);
-                  }}
-                  className={`p-4 rounded-xl border cursor-pointer transition-all ${
-                    selectedGroup?.id === group.id
-                      ? 'bg-primary/10 border-primary/30'
-                      : 'bg-card border-border hover:border-primary/30'
-                  }`}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  onClick={() => navigate(`/groups/${group.id}`)}
+                  className="p-4 rounded-xl border bg-card border-border hover:border-primary/30 cursor-pointer transition-all"
                 >
-                  <div className="flex items-center gap-2 mb-1">
+                  <div className="flex items-center gap-2 mb-2">
                     <h3 className="font-semibold">{group.name}</h3>
                     {group.status === 'draft' && (
                       <Badge variant="outline" className="text-xs">Draft</Badge>
@@ -883,91 +876,8 @@ export default function Groups() {
                       {group.total_days} days
                     </span>
                   </div>
-                  
-                  <div className="flex items-center gap-2 mt-3 flex-wrap">
-                    {group.status === 'published' && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          copyInviteCode(group.invite_code);
-                        }}
-                        title="Copy invite code to share with friends"
-                      >
-                        <UserPlus className="w-4 h-4 mr-1" />
-                        Invite
-                      </Button>
-                    )}
-                    {group.created_by === user!.id && group.status === 'draft' && (
-                      <>
-                        <div onClick={(e) => e.stopPropagation()}>
-                          <TaskConfigDialog
-                            groupId={group.id}
-                            userId={user!.id}
-                            isGroupCreator={true}
-                            onSave={() => fetchLeaderboard(group.id)}
-                            trigger={
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <Settings2 className="w-4 h-4" />
-                              </Button>
-                            }
-                          />
-                        </div>
-                        <Button
-                          variant="default"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            publishGroup(group.id);
-                          }}
-                          disabled={publishing === group.id}
-                        >
-                          {publishing === group.id ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <>
-                              <Send className="w-4 h-4 mr-1" />
-                              Publish
-                            </>
-                          )}
-                        </Button>
-                      </>
-                    )}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-destructive"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        leaveGroup(group.id);
-                      }}
-                    >
-                      <LogOut className="w-4 h-4" />
-                    </Button>
-                  </div>
                 </motion.div>
               ))}
-            </div>
-
-            {/* Leaderboard */}
-            <div className="md:col-span-2">
-              {selectedGroup && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                >
-                  <LeaderboardCard
-                    entries={leaderboard}
-                    title={`${selectedGroup.name} Leaderboard`}
-                    currentUserId={user?.id}
-                    groupId={selectedGroup.id}
-                    showCheers={true}
-                    isGroupOwner={selectedGroup.created_by === user?.id}
-                    onRemoveMember={removeMember}
-                  />
-                </motion.div>
-              )}
             </div>
           </div>
         )}
