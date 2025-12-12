@@ -789,8 +789,8 @@ export default function Dashboard() {
             )}
           </motion.div>
 
-          {/* Quick Stats - only show when challenge exists */}
-          {challenge && (
+          {/* Quick Stats - show when challenge exists OR user has groups */}
+          {(challenge || myGroups.length > 0) && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -799,60 +799,68 @@ export default function Dashboard() {
             >
               <h3 className="font-display font-semibold mb-4 flex items-center gap-2">
                 <TrendingUp className="w-5 h-5 text-primary" />
-                Stats
+                {challenge && myGroups.length > 0 ? 'Combined Stats' : challenge ? 'Stats' : 'Group Stats'}
               </h3>
               <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Current Day</span>
-                  <span className="font-bold">{challenge.currentDay} / {challenge.totalDays}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">{isViewingToday ? "Today's" : `Day ${viewingDay}`} Progress</span>
-                  <span className="font-bold">{Math.round(progress)}%</span>
-                </div>
-              </div>
-              
-              {/* Streak Display */}
-              <div className="mt-4 pt-4 border-t border-border">
-                <StreakDisplay 
-                  currentStreak={currentStreak} 
-                  longestStreak={longestStreak} 
-                  loading={streakLoading} 
-                />
-              </div>
-            </motion.div>
-          )}
+                {/* Personal Challenge Stats */}
+                {challenge && (
+                  <>
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground flex items-center gap-2">
+                        <Flame className="w-3 h-3 text-primary" />
+                        Personal Day
+                      </span>
+                      <span className="font-bold">{challenge.currentDay} / {challenge.totalDays}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">{isViewingToday ? "Today's" : `Day ${viewingDay}`} Progress</span>
+                      <span className="font-bold">{Math.round(progress)}%</span>
+                    </div>
+                  </>
+                )}
 
-          {/* Group Stats - show when no active challenge but user is in groups */}
-          {!challenge && myGroups.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="bg-card rounded-2xl border border-border p-6"
-            >
-              <h3 className="font-display font-semibold mb-4 flex items-center gap-2">
-                <Users className="w-5 h-5 text-primary" />
-                Group Stats
-              </h3>
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Active Groups</span>
-                  <span className="font-bold">{myGroups.length}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Total Points</span>
-                  <span className="font-bold text-primary">{myGroups.reduce((sum, g) => sum + g.userPoints, 0)}</span>
-                </div>
+                {/* Group Stats */}
                 {myGroups.length > 0 && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">Top Group</span>
-                    <span className="font-bold truncate max-w-[150px]">
-                      {myGroups.reduce((top, g) => g.userPoints > top.userPoints ? g : top, myGroups[0]).name}
-                    </span>
-                  </div>
+                  <>
+                    {challenge && <div className="border-t border-border my-3" />}
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground flex items-center gap-2">
+                        <Users className="w-3 h-3 text-accent" />
+                        Active Groups
+                      </span>
+                      <span className="font-bold">{myGroups.length}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">Group Points</span>
+                      <span className="font-bold text-accent">{myGroups.reduce((sum, g) => sum + g.userPoints, 0)}</span>
+                    </div>
+                  </>
+                )}
+
+                {/* Combined Total */}
+                {challenge && myGroups.length > 0 && (
+                  <>
+                    <div className="border-t border-border my-3" />
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground font-medium">Total Points</span>
+                      <span className="font-bold text-lg text-primary">
+                        {totalChallengePoints + myGroups.reduce((sum, g) => sum + g.userPoints, 0)}
+                      </span>
+                    </div>
+                  </>
                 )}
               </div>
+              
+              {/* Streak Display - only for personal challenge */}
+              {challenge && (
+                <div className="mt-4 pt-4 border-t border-border">
+                  <StreakDisplay 
+                    currentStreak={currentStreak} 
+                    longestStreak={longestStreak} 
+                    loading={streakLoading} 
+                  />
+                </div>
+              )}
             </motion.div>
           )}
 
