@@ -63,23 +63,47 @@ export default function Auth() {
       
       authSchema.parse(validationData);
 
-      const { error } = isLogin 
+      const { error, data } = isLogin 
         ? await signIn(email, password)
         : await signUp(email, password, fullName);
 
       if (error) {
+        // Handle specific error cases
+        let errorMessage = error.message;
+        
+        if (error.message.includes('User already registered') || 
+            error.message.includes('already been registered')) {
+          errorMessage = 'An account with this email already exists. Please sign in instead.';
+        } else if (error.message.includes('Invalid login credentials')) {
+          errorMessage = 'Invalid email or password. Please try again.';
+        } else if (error.message.includes('Email not confirmed')) {
+          errorMessage = 'Please check your email and confirm your account before signing in.';
+        }
+        
         toast({
           title: "Error",
-          description: error.message,
+          description: errorMessage,
           variant: "destructive"
         });
       } else if (!isLogin) {
-        toast({
-          title: "Account created!",
-          description: "Welcome to 75 Hard. Let's set up your profile!"
-        });
-        // Show profile setup for new signups
-        setShowProfileSetup(true);
+        // Check if email confirmation is required
+        if (data?.user && !data?.session) {
+          toast({
+            title: "Check your email!",
+            description: "We've sent you a confirmation link. Please verify your email to continue.",
+          });
+          // Reset form
+          setEmail('');
+          setPassword('');
+          setFullName('');
+          setIsLogin(true);
+        } else {
+          toast({
+            title: "Account created!",
+            description: "Welcome to 75 Hard. Let's set up your profile!"
+          });
+          setShowProfileSetup(true);
+        }
       }
     } catch (err) {
       if (err instanceof z.ZodError) {
