@@ -46,7 +46,16 @@ export default function Auth() {
       .eq('id', user.id)
       .maybeSingle();
 
-    if (profile && (!profile.birthdate || !profile.current_weight || !profile.goal_weight || !profile.goal_date)) {
+    // If no profile exists, create one
+    if (!profile) {
+      await supabase
+        .from('profiles')
+        .insert({ id: user.id, email: user.email });
+      setShowProfileSetup(true);
+      return;
+    }
+
+    if (!profile.birthdate || !profile.current_weight || !profile.goal_weight || !profile.goal_date) {
       setShowProfileSetup(true);
     } else {
       navigate('/dashboard');
