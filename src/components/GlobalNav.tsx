@@ -102,8 +102,16 @@ export function GlobalNav() {
           
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon">
+              <Button variant="ghost" size="icon" className="relative">
                 <Menu className="w-5 h-5" />
+                {pendingRequestCount > 0 && (
+                  <Badge 
+                    variant="destructive" 
+                    className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-xs"
+                  >
+                    {pendingRequestCount > 9 ? '9+' : pendingRequestCount}
+                  </Badge>
+                )}
               </Button>
             </SheetTrigger>
             <SheetContent side="right" className="w-72">
