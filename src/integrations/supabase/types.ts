@@ -159,6 +159,38 @@ export type Database = {
           },
         ]
       }
+      favorite_quotes: {
+        Row: {
+          created_at: string
+          id: string
+          quote_author: string
+          quote_text: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          quote_author: string
+          quote_text: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          quote_author?: string
+          quote_text?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "favorite_quotes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       group_members: {
         Row: {
           group_id: string
