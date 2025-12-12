@@ -15,6 +15,7 @@ import {
   Search, Eye, X, Send, Clock
 } from 'lucide-react';
 import { AppHeader } from '@/components/AppHeader';
+import { PageHeader } from '@/components/PageHeader';
 import { Badge } from '@/components/ui/badge';
 import { SimpleLoadingSkeleton } from '@/components/PageLoadingSkeleton';
 import {
@@ -618,11 +619,10 @@ export default function Groups() {
     <>
       {/* Page Header with Actions */}
       <div className="container max-w-4xl mx-auto px-4 pt-6 pb-2">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-display font-bold flex items-center gap-2">
-            <Users className="w-6 h-6 text-primary" />
-            Groups
-          </h1>
+        <PageHeader 
+          title="Groups" 
+          icon={<Users className="w-6 h-6 text-primary" />}
+        >
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={() => setJoinDialogOpen(true)}>
               <UserPlus className="w-4 h-4 mr-2" />
@@ -633,7 +633,7 @@ export default function Groups() {
               Create
             </Button>
           </div>
-        </div>
+        </PageHeader>
       </div>
 
       {/* Join Group Dialog */}

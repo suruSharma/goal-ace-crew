@@ -6,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { AppHeader } from '@/components/AppHeader';
+import { PageHeader } from '@/components/PageHeader';
 import { LeaderboardCard } from '@/components/LeaderboardCard';
 import { Badge } from '@/components/ui/badge';
 import { SimpleLoadingSkeleton } from '@/components/PageLoadingSkeleton';
@@ -483,6 +483,11 @@ export default function GroupDetails() {
   return (
     <>
       <main className="container max-w-4xl mx-auto px-4 py-8 space-y-6">
+        <PageHeader 
+          title={group.name} 
+          icon={<Users className="w-5 h-5 text-primary" />}
+        />
+        
         {/* Group Info Card */}
         <div className="bg-card rounded-2xl border border-border p-6">
           <div className="flex items-start justify-between mb-4">
