@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button';
 import { TaskCard } from '@/components/TaskCard';
 import { DayCounter } from '@/components/DayCounter';
 import { ProgressRing } from '@/components/ui/progress-ring';
-
+import { StreakDisplay } from '@/components/StreakDisplay';
+import { useStreak } from '@/hooks/useStreak';
 import { ChallengeSetupDialog } from '@/components/ChallengeSetupDialog';
 import { TaskCardSkeletonGroup } from '@/components/TaskCardSkeleton';
 import { PageLoadingSkeleton } from '@/components/PageLoadingSkeleton';
@@ -375,6 +376,8 @@ export default function Dashboard() {
   const totalPoints = tasks.filter(t => t.completed).reduce((sum, t) => sum + t.weight, 0);
   const progress = tasks.length > 0 ? (completedTasks / tasks.length) * 100 : 0;
   const isViewingToday = challenge ? viewingDay === challenge.currentDay : true;
+  
+  const { currentStreak, longestStreak, loading: streakLoading } = useStreak(challenge?.id);
 
   if (authLoading || loading) {
     return <PageLoadingSkeleton />;
@@ -489,10 +492,15 @@ export default function Dashboard() {
                 <span className="text-muted-foreground">{isViewingToday ? "Today's" : `Day ${viewingDay}`} Progress</span>
                 <span className="font-bold">{Math.round(progress)}%</span>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Tasks Left</span>
-                <span className="font-bold">{tasks.length - completedTasks}</span>
-              </div>
+            </div>
+            
+            {/* Streak Display */}
+            <div className="mt-4 pt-4 border-t border-border">
+              <StreakDisplay 
+                currentStreak={currentStreak} 
+                longestStreak={longestStreak} 
+                loading={streakLoading} 
+              />
             </div>
             
             {challenge && (
