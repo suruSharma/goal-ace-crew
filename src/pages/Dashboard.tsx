@@ -9,6 +9,7 @@ import { DayCounter } from '@/components/DayCounter';
 import { ProgressRing } from '@/components/ui/progress-ring';
 import { TaskConfigDialog } from '@/components/TaskConfigDialog';
 import { ChallengeSetupDialog } from '@/components/ChallengeSetupDialog';
+import { TaskCardSkeletonGroup } from '@/components/TaskCardSkeleton';
 import { MotivationalQuote } from '@/components/MotivationalQuote';
 import { useToast } from '@/hooks/use-toast';
 import { 
@@ -586,10 +587,7 @@ export default function Dashboard() {
           )}
           
           {tasksLoading ? (
-            <div className="flex flex-col items-center justify-center py-12 gap-3">
-              <Loader2 className="w-8 h-8 animate-spin text-primary" />
-              <p className="text-sm text-muted-foreground animate-pulse">Loading tasks...</p>
-            </div>
+            <TaskCardSkeletonGroup count={5} />
           ) : (
             <div className="grid gap-3">
               {tasks.map((task, index) => (
