@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { 
   Plus, Trash2, GripVertical, Loader2, Settings2, Save
 } from 'lucide-react';
+import { TemplateListSkeleton } from '@/components/TaskCardSkeleton';
 import {
   Dialog,
   DialogContent,
@@ -206,9 +207,7 @@ export function TaskConfigDialog({
         </DialogHeader>
         
         {loading ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="w-6 h-6 animate-spin text-primary" />
-          </div>
+          <TemplateListSkeleton count={5} />
         ) : (
           <div className="flex flex-col flex-1 overflow-hidden">
             <div className="flex-1 overflow-y-auto pr-2 space-y-3">

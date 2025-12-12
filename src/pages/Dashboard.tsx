@@ -10,6 +10,7 @@ import { ProgressRing } from '@/components/ui/progress-ring';
 import { TaskConfigDialog } from '@/components/TaskConfigDialog';
 import { ChallengeSetupDialog } from '@/components/ChallengeSetupDialog';
 import { TaskCardSkeletonGroup } from '@/components/TaskCardSkeleton';
+import { PageLoadingSkeleton } from '@/components/PageLoadingSkeleton';
 import { MotivationalQuote } from '@/components/MotivationalQuote';
 import { useToast } from '@/hooks/use-toast';
 import { 
@@ -365,11 +366,7 @@ export default function Dashboard() {
   const isViewingToday = challenge ? viewingDay === challenge.currentDay : true;
 
   if (authLoading || loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
+    return <PageLoadingSkeleton />;
   }
 
   return (
