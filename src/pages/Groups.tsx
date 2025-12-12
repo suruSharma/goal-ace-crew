@@ -480,6 +480,34 @@ export default function Groups() {
     }
   };
 
+  const removeMember = async (memberId: string, memberName: string) => {
+    if (!selectedGroup) return;
+    
+    try {
+      const { error } = await supabase
+        .from('group_members')
+        .delete()
+        .eq('group_id', selectedGroup.id)
+        .eq('user_id', memberId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Member removed",
+        description: `${memberName} has been removed from the group`
+      });
+
+      fetchLeaderboard(selectedGroup.id);
+      fetchGroups();
+    } catch (error: any) {
+      toast({
+        title: "Error removing member",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  };
+
   if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -762,6 +790,8 @@ export default function Groups() {
                     currentUserId={user?.id}
                     groupId={selectedGroup.id}
                     showCheers={true}
+                    isGroupOwner={selectedGroup.created_by === user?.id}
+                    onRemoveMember={removeMember}
                   />
                 </motion.div>
               )}
