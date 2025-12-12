@@ -10,7 +10,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { ArrowLeft, Save, Loader2, User, Scale, Target, CalendarIcon, Trash2, Ruler, Plus, Camera, Users, AlertTriangle, Heart } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, User, Scale, Target, CalendarIcon, Trash2, Ruler, Plus, Camera, Users, AlertTriangle, Heart, Mail } from 'lucide-react';
 import { WeightProgressChart } from '@/components/WeightProgressChart';
 import { FavoriteQuotes } from '@/components/FavoriteQuotes';
 import { SimpleLoadingSkeleton } from '@/components/PageLoadingSkeleton';
@@ -40,6 +40,7 @@ interface ProfileData {
   goal_weight: number | null;
   height_cm: number | null;
   avatar_url: string | null;
+  recovery_email: string;
 }
 
 interface WeightEntry {
@@ -70,7 +71,8 @@ export default function Profile() {
     current_weight: null,
     goal_weight: null,
     height_cm: null,
-    avatar_url: null
+    avatar_url: null,
+    recovery_email: ''
   });
   const [weightHistory, setWeightHistory] = useState<WeightEntry[]>([]);
   const [newWeight, setNewWeight] = useState('');
@@ -107,7 +109,7 @@ export default function Profile() {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('full_name, birthdate, current_weight, goal_weight, height_cm, avatar_url')
+        .select('full_name, birthdate, current_weight, goal_weight, height_cm, avatar_url, recovery_email')
         .eq('id', user!.id)
         .maybeSingle();
 
@@ -120,7 +122,8 @@ export default function Profile() {
           current_weight: data.current_weight,
           goal_weight: data.goal_weight,
           height_cm: data.height_cm,
-          avatar_url: data.avatar_url
+          avatar_url: data.avatar_url,
+          recovery_email: data.recovery_email || ''
         });
       }
     } catch (error: any) {
@@ -270,7 +273,8 @@ export default function Profile() {
           birthdate: profile.birthdate || null,
           current_weight: profile.current_weight,
           goal_weight: profile.goal_weight,
-          height_cm: profile.height_cm
+          height_cm: profile.height_cm,
+          recovery_email: profile.recovery_email || null
         })
         .eq('id', user!.id);
 
@@ -702,6 +706,24 @@ export default function Profile() {
                   className="bg-secondary/50"
                 />
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="recoveryEmail" className="flex items-center gap-2">
+                <Mail className="w-4 h-4 text-muted-foreground" />
+                Recovery Email (optional)
+              </Label>
+              <Input
+                id="recoveryEmail"
+                type="email"
+                value={profile.recovery_email}
+                onChange={(e) => setProfile(p => ({ ...p, recovery_email: e.target.value }))}
+                placeholder="your@email.com"
+                className="bg-secondary/50"
+              />
+              <p className="text-xs text-muted-foreground">
+                Add an email to recover your password if you forget it
+              </p>
             </div>
 
             {calculatedBMI && (

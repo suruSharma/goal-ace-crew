@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ProfileSetupDialog } from '@/components/ProfileSetupDialog';
 import { useToast } from '@/hooks/use-toast';
-import { Flame, ArrowRight, Loader2 } from 'lucide-react';
+import { Flame, ArrowRight, Loader2, ArrowLeft, Key } from 'lucide-react';
 import { z } from 'zod';
 
 const authSchema = z.object({
@@ -16,12 +16,14 @@ const authSchema = z.object({
   password: z.string().min(6, 'Password must be at least 6 characters'),
 });
 
-type AuthMode = 'login' | 'signup';
+type AuthMode = 'login' | 'signup' | 'forgot-password' | 'reset-password';
 
 export default function Auth() {
+  const [searchParams] = useSearchParams();
   const [mode, setMode] = useState<AuthMode>('login');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [showProfileSetup, setShowProfileSetup] = useState(false);
   const { signIn, signUp, user } = useAuth();
@@ -30,6 +32,13 @@ export default function Auth() {
 
   // Convert username to fake email for Supabase Auth
   const usernameToEmail = (uname: string) => `${uname.toLowerCase()}@75hard.app`;
+
+  // Check if user came from password reset link
+  useEffect(() => {
+    if (searchParams.get('reset') === 'true') {
+      setMode('reset-password');
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (user && !showProfileSetup) {
@@ -68,6 +77,39 @@ export default function Auth() {
     setLoading(true);
 
     try {
+      // Handle forgot password
+      if (mode === 'forgot-password') {
+        const { error } = await supabase.functions.invoke('send-password-reset', {
+          body: { username }
+        });
+
+        if (error) throw error;
+
+        toast({
+          title: "Check your email",
+          description: "If you have a recovery email set, you'll receive a reset link.",
+        });
+        setMode('login');
+        setLoading(false);
+        return;
+      }
+
+      // Handle password reset
+      if (mode === 'reset-password') {
+        const { error } = await supabase.auth.updateUser({ password: newPassword });
+
+        if (error) throw error;
+
+        toast({
+          title: "Password updated!",
+          description: "You can now sign in with your new password.",
+        });
+        setMode('login');
+        setNewPassword('');
+        setLoading(false);
+        return;
+      }
+
       const validationData = { username, password };
       authSchema.parse(validationData);
 
@@ -92,27 +134,23 @@ export default function Auth() {
           variant: "destructive"
         });
       } else if (mode === 'signup') {
-        if (data?.user && !data?.session) {
-          // Auto-confirm is disabled, but since we're using fake emails, 
-          // we should have auto-confirm enabled in Supabase
-          toast({
-            title: "Account created!",
-            description: "Welcome to 75 Hard. Let's set up your profile!"
-          });
-          setShowProfileSetup(true);
-        } else {
-          toast({
-            title: "Account created!",
-            description: "Welcome to 75 Hard. Let's set up your profile!"
-          });
-          setShowProfileSetup(true);
-        }
+        toast({
+          title: "Account created!",
+          description: "Welcome to 75 Hard. Let's set up your profile!"
+        });
+        setShowProfileSetup(true);
       }
     } catch (err) {
       if (err instanceof z.ZodError) {
         toast({
           title: "Validation Error",
           description: err.issues[0].message,
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: (err as Error).message,
           variant: "destructive"
         });
       }
@@ -127,6 +165,103 @@ export default function Auth() {
   };
 
   const renderForm = () => {
+    // Forgot password form
+    if (mode === 'forgot-password') {
+      return (
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="text-center mb-4">
+            <h2 className="text-xl font-semibold">Reset your password</h2>
+            <p className="text-muted-foreground text-sm mt-1">
+              Enter your username and we'll send a reset link to your recovery email
+            </p>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="username">Username</Label>
+            <Input
+              id="username"
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="your_username"
+              className="bg-secondary/50"
+            />
+          </div>
+
+          <Button 
+            type="submit" 
+            className="w-full h-12 font-semibold"
+            disabled={loading || !username}
+          >
+            {loading ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <>
+                Send reset link
+                <ArrowRight className="w-5 h-5 ml-2" />
+              </>
+            )}
+          </Button>
+
+          <Button
+            type="button"
+            variant="ghost"
+            className="w-full"
+            onClick={() => setMode('login')}
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to sign in
+          </Button>
+        </form>
+      );
+    }
+
+    // Reset password form (after clicking email link)
+    if (mode === 'reset-password') {
+      return (
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="text-center mb-4">
+            <div className="w-12 h-12 mx-auto rounded-full bg-primary/10 flex items-center justify-center mb-3">
+              <Key className="w-6 h-6 text-primary" />
+            </div>
+            <h2 className="text-xl font-semibold">Set new password</h2>
+            <p className="text-muted-foreground text-sm mt-1">
+              Enter your new password below
+            </p>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="newPassword">New Password</Label>
+            <Input
+              id="newPassword"
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="••••••••"
+              className="bg-secondary/50"
+              autoComplete="new-password"
+            />
+          </div>
+
+          <Button 
+            type="submit" 
+            className="w-full h-12 font-semibold"
+            disabled={loading || newPassword.length < 6}
+          >
+            {loading ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <>
+                Update Password
+                <ArrowRight className="w-5 h-5 ml-2" />
+              </>
+            )}
+          </Button>
+        </form>
+      );
+    }
+
+    // Login / Signup form
     return (
       <form onSubmit={handleSubmit} className="space-y-4">
         
@@ -144,7 +279,18 @@ export default function Auth() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="password">Password</Label>
+          <div className="flex items-center justify-between">
+            <Label htmlFor="password">Password</Label>
+            {mode === 'login' && (
+              <button
+                type="button"
+                onClick={() => setMode('forgot-password')}
+                className="text-xs text-primary hover:underline"
+              >
+                Forgot password?
+              </button>
+            )}
+          </div>
           <Input
             id="password"
             type="password"
@@ -190,6 +336,8 @@ export default function Auth() {
           <p className="text-muted-foreground mt-2">
             {mode === 'login' && 'Welcome back, warrior!'}
             {mode === 'signup' && 'Start your transformation'}
+            {mode === 'forgot-password' && 'Reset your password'}
+            {mode === 'reset-password' && 'Create a new password'}
           </p>
         </div>
 
