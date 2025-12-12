@@ -62,11 +62,22 @@ export default function Profile() {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [loadingDeleteSummary, setLoadingDeleteSummary] = useState(false);
-  const [ownedGroupsSummary, setOwnedGroupsSummary] = useState<{
-    groupName: string;
-    newOwnerName: string | null;
-    willBeDeleted: boolean;
-  }[]>([]);
+  const [deleteSummary, setDeleteSummary] = useState<{
+    challenges: number;
+    dailyTasks: number;
+    achievements: number;
+    favoriteQuotes: number;
+    weightEntries: number;
+    cheers: number;
+    groupComments: number;
+    groupMemberships: number;
+    ownedGroups: {
+      groupName: string;
+      status: string;
+      newOwnerName: string | null;
+      willBeDeleted: boolean;
+    }[];
+  } | null>(null);
   const [profile, setProfile] = useState<ProfileData>({
     full_name: '',
     birthdate: '',
@@ -339,30 +350,57 @@ export default function Profile() {
   const fetchDeleteSummary = async () => {
     setLoadingDeleteSummary(true);
     try {
-      const { data: ownedGroups } = await supabase
-        .from('groups')
-        .select('id, name')
-        .eq('created_by', user!.id);
+      // Fetch all counts in parallel
+      const [
+        challengesResult,
+        achievementsResult,
+        favoriteQuotesResult,
+        weightHistoryResult,
+        cheersResult,
+        groupCommentsResult,
+        groupMembershipsResult,
+        ownedGroupsResult
+      ] = await Promise.all([
+        supabase.from('user_challenges').select('id', { count: 'exact', head: true }).eq('user_id', user!.id),
+        supabase.from('user_achievements').select('id', { count: 'exact', head: true }).eq('user_id', user!.id),
+        supabase.from('favorite_quotes').select('id', { count: 'exact', head: true }).eq('user_id', user!.id),
+        supabase.from('weight_history').select('id', { count: 'exact', head: true }).eq('user_id', user!.id),
+        supabase.from('cheers').select('id', { count: 'exact', head: true }).or(`from_user_id.eq.${user!.id},to_user_id.eq.${user!.id}`),
+        supabase.from('group_comments').select('id', { count: 'exact', head: true }).eq('user_id', user!.id),
+        supabase.from('group_members').select('id', { count: 'exact', head: true }).eq('user_id', user!.id),
+        supabase.from('groups').select('id, name, status').eq('created_by', user!.id)
+      ]);
 
-      if (!ownedGroups || ownedGroups.length === 0) {
-        setOwnedGroupsSummary([]);
-        return;
+      // Get daily tasks count
+      const { data: userChallenges } = await supabase
+        .from('user_challenges')
+        .select('id')
+        .eq('user_id', user!.id);
+      
+      let dailyTasksCount = 0;
+      if (userChallenges && userChallenges.length > 0) {
+        const challengeIds = userChallenges.map(c => c.id);
+        const { count } = await supabase
+          .from('daily_tasks')
+          .select('id', { count: 'exact', head: true })
+          .in('user_challenge_id', challengeIds);
+        dailyTasksCount = count || 0;
       }
 
-      const summary = await Promise.all(
+      // Process owned groups
+      const ownedGroups = ownedGroupsResult.data || [];
+      const ownedGroupsSummary = await Promise.all(
         ownedGroups.map(async (group) => {
           const { data: members } = await supabase
             .from('group_members')
-            .select(`
-              user_id,
-              profiles (full_name)
-            `)
+            .select(`user_id, profiles (full_name)`)
             .eq('group_id', group.id)
             .neq('user_id', user!.id);
 
           if (!members || members.length === 0) {
             return {
               groupName: group.name,
+              status: group.status,
               newOwnerName: null,
               willBeDeleted: true
             };
@@ -404,13 +442,24 @@ export default function Profile() {
           
           return {
             groupName: group.name,
+            status: group.status,
             newOwnerName: memberPoints[0].name,
             willBeDeleted: false
           };
         })
       );
 
-      setOwnedGroupsSummary(summary);
+      setDeleteSummary({
+        challenges: challengesResult.count || 0,
+        dailyTasks: dailyTasksCount,
+        achievements: achievementsResult.count || 0,
+        favoriteQuotes: favoriteQuotesResult.count || 0,
+        weightEntries: weightHistoryResult.count || 0,
+        cheers: cheersResult.count || 0,
+        groupComments: groupCommentsResult.count || 0,
+        groupMemberships: groupMembershipsResult.count || 0,
+        ownedGroups: ownedGroupsSummary
+      });
     } catch (error) {
       console.error('Error fetching delete summary:', error);
     } finally {
@@ -964,35 +1013,82 @@ export default function Profile() {
                 <AlertDialogDescription asChild>
                   <div className="space-y-4">
                     <p>
-                      This action cannot be undone. This will permanently delete your profile, all your challenges, tasks, and remove you from all groups.
+                      This action cannot be undone. This will permanently delete your profile and all associated data.
                     </p>
                     
                     {loadingDeleteSummary ? (
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <Loader2 className="w-4 h-4 animate-spin" />
-                        <span>Checking owned groups...</span>
+                        <span>Loading deletion summary...</span>
                       </div>
-                    ) : ownedGroupsSummary.length > 0 && (
-                      <div className="rounded-lg bg-muted/50 border border-border p-3 space-y-2">
-                        <p className="font-medium text-foreground flex items-center gap-2">
-                          <Users className="w-4 h-4" />
-                          Groups you own:
-                        </p>
-                        <ul className="space-y-2 text-sm">
-                          {ownedGroupsSummary.map((group, idx) => (
-                            <li key={idx} className="flex items-start gap-2">
-                              <span className="text-muted-foreground">•</span>
-                              <span>
-                                <span className="font-medium text-foreground">{group.groupName}</span>
-                                {group.willBeDeleted ? (
-                                  <span className="text-destructive"> — will be deleted (no other members)</span>
-                                ) : (
-                                  <span className="text-muted-foreground"> — ownership transfers to <span className="text-primary font-medium">{group.newOwnerName}</span></span>
-                                )}
-                              </span>
-                            </li>
-                          ))}
-                        </ul>
+                    ) : deleteSummary && (
+                      <div className="space-y-3">
+                        {/* Data counts */}
+                        <div className="rounded-lg bg-muted/50 border border-border p-3">
+                          <p className="font-medium text-foreground mb-2">Data to be deleted:</p>
+                          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Challenges:</span>
+                              <span className="font-medium text-foreground">{deleteSummary.challenges}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Daily Tasks:</span>
+                              <span className="font-medium text-foreground">{deleteSummary.dailyTasks}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Achievements:</span>
+                              <span className="font-medium text-foreground">{deleteSummary.achievements}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Weight Entries:</span>
+                              <span className="font-medium text-foreground">{deleteSummary.weightEntries}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Favorite Quotes:</span>
+                              <span className="font-medium text-foreground">{deleteSummary.favoriteQuotes}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Group Comments:</span>
+                              <span className="font-medium text-foreground">{deleteSummary.groupComments}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Cheers:</span>
+                              <span className="font-medium text-foreground">{deleteSummary.cheers}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Group Memberships:</span>
+                              <span className="font-medium text-foreground">{deleteSummary.groupMemberships}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Owned groups section */}
+                        {deleteSummary.ownedGroups.length > 0 && (
+                          <div className="rounded-lg bg-muted/50 border border-border p-3 space-y-2">
+                            <p className="font-medium text-foreground flex items-center gap-2">
+                              <Users className="w-4 h-4" />
+                              Groups you own ({deleteSummary.ownedGroups.length}):
+                            </p>
+                            <ul className="space-y-2 text-sm">
+                              {deleteSummary.ownedGroups.map((group, idx) => (
+                                <li key={idx} className="flex items-start gap-2">
+                                  <span className="text-muted-foreground">•</span>
+                                  <span>
+                                    <span className="font-medium text-foreground">{group.groupName}</span>
+                                    {group.status === 'draft' && (
+                                      <span className="text-muted-foreground text-xs ml-1">(draft)</span>
+                                    )}
+                                    {group.willBeDeleted ? (
+                                      <span className="text-destructive"> — will be deleted</span>
+                                    ) : (
+                                      <span className="text-muted-foreground"> — ownership transfers to <span className="text-primary font-medium">{group.newOwnerName}</span></span>
+                                    )}
+                                  </span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
