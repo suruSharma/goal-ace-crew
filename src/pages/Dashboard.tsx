@@ -20,7 +20,7 @@ import { useToast } from '@/hooks/use-toast';
 import { 
   Flame, LogOut, Users, Trophy, 
   Calendar, TrendingUp, Loader2, Rocket,
-  ChevronLeft, ChevronRight, RotateCcw, UserPlus
+  ChevronLeft, ChevronRight, RotateCcw, UserPlus, Clock
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
@@ -835,6 +835,12 @@ export default function Dashboard() {
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
+                <Button variant="ghost" size="sm" asChild className="w-full">
+                  <Link to="/challenge-history">
+                    <Clock className="w-4 h-4 mr-2" />
+                    View History
+                  </Link>
+                </Button>
               </div>
             </motion.div>
           )}
