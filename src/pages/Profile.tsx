@@ -10,7 +10,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { ArrowLeft, Save, Loader2, User, Scale, Target, CalendarIcon, Trash2, Ruler, Plus, Camera, Users, AlertTriangle, Heart, Mail, Palette } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, User, Scale, Target, CalendarIcon, Trash2, Ruler, Plus, Camera, Users, AlertTriangle, Heart, Mail, Palette, ChevronRight } from 'lucide-react';
 import { AppHeader } from '@/components/AppHeader';
 import { ThemeSettings } from '@/components/ThemeSettings';
 import { WeightProgressChart } from '@/components/WeightProgressChart';
@@ -80,6 +80,7 @@ export default function Profile() {
   const [newWeight, setNewWeight] = useState('');
   const [addingWeight, setAddingWeight] = useState(false);
   const [weightDialogOpen, setWeightDialogOpen] = useState(false);
+  const [myGroups, setMyGroups] = useState<{ id: string; name: string; status: string; memberCount: number }[]>([]);
 
   const calculatedBMI = useMemo(() => {
     if (!profile.height_cm || !profile.current_weight) return null;
@@ -110,8 +111,40 @@ export default function Profile() {
     if (user) {
       fetchProfile();
       fetchWeightHistory();
+      fetchMyGroups();
     }
   }, [user]);
+
+  const fetchMyGroups = async () => {
+    try {
+      const { data: groups, error } = await supabase
+        .from('groups')
+        .select('id, name, status')
+        .eq('created_by', user!.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      // Get member counts for each group
+      const groupsWithCounts = await Promise.all(
+        (groups || []).map(async (group) => {
+          const { count } = await supabase
+            .from('group_members')
+            .select('*', { count: 'exact', head: true })
+            .eq('group_id', group.id);
+          
+          return {
+            ...group,
+            memberCount: count || 0
+          };
+        })
+      );
+
+      setMyGroups(groupsWithCounts);
+    } catch (error) {
+      console.error('Error fetching groups:', error);
+    }
+  };
 
   const fetchProfile = async () => {
     try {
@@ -833,10 +866,60 @@ export default function Profile() {
           <FavoriteQuotes userId={user!.id} />
         </div>
 
-        {/* Theme Settings Section */}
+        {/* My Groups Section */}
         <div
           className="bg-card rounded-2xl border border-border p-6 animate-fade-in"
           style={{ animationDelay: '0.2s' }}
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-display font-bold text-lg flex items-center gap-2">
+              <Users className="w-5 h-5 text-primary" />
+              My Groups
+            </h3>
+            <Link to="/groups">
+              <Button variant="outline" size="sm">
+                <Plus className="w-4 h-4 mr-1" />
+                Create Group
+              </Button>
+            </Link>
+          </div>
+          
+          {myGroups.length === 0 ? (
+            <p className="text-muted-foreground text-sm text-center py-4">
+              You haven't created any groups yet
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {myGroups.map((group) => (
+                <Link
+                  key={group.id}
+                  to={`/groups?group=${group.id}`}
+                  className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors group"
+                >
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{group.name}</span>
+                      {group.status === 'draft' && (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                          Draft
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-sm text-muted-foreground">
+                      {group.memberCount} {group.memberCount === 1 ? 'member' : 'members'}
+                    </span>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Theme Settings Section */}
+        <div
+          className="bg-card rounded-2xl border border-border p-6 animate-fade-in"
+          style={{ animationDelay: '0.25s' }}
         >
           <h3 className="font-display font-bold text-lg flex items-center gap-2 mb-4">
             <Palette className="w-5 h-5 text-primary" />
@@ -848,7 +931,7 @@ export default function Profile() {
         {/* Danger Zone */}
         <div
           className="bg-card rounded-2xl border border-destructive/30 p-6 animate-fade-in"
-          style={{ animationDelay: '0.25s' }}
+          style={{ animationDelay: '0.3s' }}
         >
           <h3 className="font-display font-bold text-lg text-destructive mb-2">Danger Zone</h3>
           <p className="text-sm text-muted-foreground mb-4">
