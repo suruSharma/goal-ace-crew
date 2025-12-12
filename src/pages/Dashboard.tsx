@@ -117,12 +117,13 @@ export default function Dashboard() {
         setAvatarUrl(profile.avatar_url);
       }
 
-      // Check for existing active challenge
+      // Check for existing active PERSONAL challenge (not group-linked)
       const { data: existingChallenge } = await supabase
         .from('user_challenges')
         .select('*')
         .eq('user_id', user!.id)
         .eq('is_active', true)
+        .is('group_id', null)
         .maybeSingle();
 
       // Fetch user's groups
