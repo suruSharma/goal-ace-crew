@@ -320,20 +320,31 @@ export default function Dashboard() {
   };
 
   const restartChallenge = async () => {
-    if (!challenge || !user) return;
+    if (!user) return;
     
     try {
-      // Delete all daily tasks for this challenge
-      await supabase
-        .from('daily_tasks')
-        .delete()
-        .eq('user_challenge_id', challenge.id);
-      
-      // Delete the challenge itself
-      await supabase
+      // First, get ALL active challenges for this user (handles edge cases)
+      const { data: allChallenges } = await supabase
         .from('user_challenges')
-        .delete()
-        .eq('id', challenge.id);
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('is_active', true);
+
+      if (allChallenges && allChallenges.length > 0) {
+        const challengeIds = allChallenges.map(c => c.id);
+        
+        // Delete all daily tasks for these challenges
+        await supabase
+          .from('daily_tasks')
+          .delete()
+          .in('user_challenge_id', challengeIds);
+        
+        // Deactivate all challenges (safer than delete)
+        await supabase
+          .from('user_challenges')
+          .update({ is_active: false })
+          .in('id', challengeIds);
+      }
       
       // Delete user's custom templates (not default ones)
       await supabase
