@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { TaskCard } from '@/components/TaskCard';
 import { DayCounter } from '@/components/DayCounter';
 import { ProgressRing } from '@/components/ui/progress-ring';
-import { TaskConfigDialog } from '@/components/TaskConfigDialog';
+
 import { ChallengeSetupDialog } from '@/components/ChallengeSetupDialog';
 import { TaskCardSkeletonGroup } from '@/components/TaskCardSkeleton';
 import { PageLoadingSkeleton } from '@/components/PageLoadingSkeleton';
@@ -15,7 +15,7 @@ import { MotivationalQuote } from '@/components/MotivationalQuote';
 import { useToast } from '@/hooks/use-toast';
 import { 
   Flame, LogOut, Users, Trophy, 
-  Calendar, TrendingUp, Loader2, Settings2, Rocket,
+  Calendar, TrendingUp, Loader2, Rocket,
   ChevronLeft, ChevronRight, RotateCcw
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -572,17 +572,6 @@ export default function Dashboard() {
                 </div>
               )}
             </div>
-            
-            <TaskConfigDialog
-              userId={user!.id}
-              onSave={fetchData}
-              trigger={
-                <Button variant="ghost" size="sm">
-                  <Settings2 className="w-4 h-4 mr-2" />
-                  Configure
-                </Button>
-              }
-            />
           </div>
 
           {/* Past day indicator */}
