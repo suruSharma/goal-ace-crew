@@ -42,7 +42,7 @@ export default function Auth() {
     
     const { data: profile } = await supabase
       .from('profiles')
-      .select('birthdate, current_weight, goal_weight, goal_date')
+      .select('full_name')
       .eq('id', user.id)
       .maybeSingle();
 
@@ -55,7 +55,8 @@ export default function Auth() {
       return;
     }
 
-    if (!profile.birthdate || !profile.current_weight || !profile.goal_weight || !profile.goal_date) {
+    // Show profile setup if name is not set
+    if (!profile.full_name) {
       setShowProfileSetup(true);
     } else {
       navigate('/dashboard');

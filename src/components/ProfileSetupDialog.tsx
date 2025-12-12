@@ -38,6 +38,7 @@ export function ProfileSetupDialog({
 }: ProfileSetupDialogProps) {
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
+  const [fullName, setFullName] = useState('');
   const [birthdate, setBirthdate] = useState<Date | undefined>();
   const [goalDate, setGoalDate] = useState<Date | undefined>();
   const [currentWeight, setCurrentWeight] = useState('');
@@ -84,7 +85,16 @@ export function ProfileSetupDialog({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // No validation - allow empty fields
+    // Name is required
+    if (!fullName.trim()) {
+      toast({
+        title: "Name required",
+        description: "Please enter your name to continue.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setSaving(true);
     try {
       const heightValue = convertHeightToCm();
@@ -93,6 +103,7 @@ export function ProfileSetupDialog({
       const { error } = await supabase
         .from('profiles')
         .update({
+          full_name: fullName.trim(),
           birthdate: birthdate ? format(birthdate, 'yyyy-MM-dd') : null,
           current_weight: currentWeightKg,
           goal_weight: goalWeightKg,
@@ -150,6 +161,23 @@ export function ProfileSetupDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-5 pt-2">
+          {/* Name - Required */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <User className="w-4 h-4 text-muted-foreground" />
+              Your Name <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              type="text"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              placeholder="Enter your name"
+              className="bg-secondary/50"
+              maxLength={100}
+              required
+            />
+          </div>
+
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
               <CalendarIcon className="w-4 h-4 text-muted-foreground" />
@@ -327,27 +355,17 @@ export function ProfileSetupDialog({
             </p>
           </div>
 
-          <div className="flex gap-3">
-            <Button
-              type="button"
-              variant="outline"
-              className="flex-1"
-              onClick={() => onOpenChange(false)}
-            >
-              Skip for now
-            </Button>
-            <Button
-              type="submit"
-              className="flex-1"
-              disabled={saving}
-            >
-              {saving ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                "Save & Continue"
-              )}
-            </Button>
-          </div>
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={saving || !fullName.trim()}
+          >
+            {saving ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              "Save & Continue"
+            )}
+          </Button>
         </form>
       </DialogContent>
     </Dialog>
