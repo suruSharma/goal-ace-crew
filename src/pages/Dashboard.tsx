@@ -12,7 +12,7 @@ import { ChallengeSetupDialog } from '@/components/ChallengeSetupDialog';
 import { MotivationalQuote } from '@/components/MotivationalQuote';
 import { useToast } from '@/hooks/use-toast';
 import { 
-  Flame, LogOut, Users, Settings, Trophy, 
+  Flame, LogOut, Users, Trophy, 
   Calendar, TrendingUp, Loader2, Settings2, Rocket,
   ChevronLeft, ChevronRight
 } from 'lucide-react';
@@ -50,6 +50,7 @@ export default function Dashboard() {
   const [challenge, setChallenge] = useState<Challenge | null>(null);
   const [loading, setLoading] = useState(true);
   const [profileName, setProfileName] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [showSetup, setShowSetup] = useState(false);
   const [viewingDay, setViewingDay] = useState<number>(1);
   const [tasksLoading, setTasksLoading] = useState(false);
@@ -81,12 +82,13 @@ export default function Dashboard() {
       // Fetch profile
       const { data: profile } = await supabase
         .from('profiles')
-        .select('full_name')
+        .select('full_name, avatar_url')
         .eq('id', user!.id)
         .maybeSingle();
       
       if (profile) {
         setProfileName(profile.full_name || 'Warrior');
+        setAvatarUrl(profile.avatar_url);
       }
 
       // Check for existing active challenge
@@ -314,11 +316,15 @@ export default function Dashboard() {
                 <Users className="w-5 h-5" />
               </Link>
             </Button>
-            <Button variant="ghost" size="icon" asChild>
-              <Link to="/profile">
-                <Settings className="w-5 h-5" />
-              </Link>
-            </Button>
+            <Link to="/profile">
+              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-primary/50 flex items-center justify-center text-primary-foreground font-semibold overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary/30 transition-all">
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-sm">{profileName?.charAt(0)?.toUpperCase() || 'U'}</span>
+                )}
+              </div>
+            </Link>
             <Button variant="ghost" size="icon" onClick={handleSignOut}>
               <LogOut className="w-5 h-5" />
             </Button>

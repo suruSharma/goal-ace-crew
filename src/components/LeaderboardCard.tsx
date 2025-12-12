@@ -71,8 +71,12 @@ export function LeaderboardCard({
               )}
             </div>
             
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary/50 flex items-center justify-center text-primary-foreground font-semibold">
-              {entry.name.charAt(0).toUpperCase()}
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary/50 flex items-center justify-center text-primary-foreground font-semibold overflow-hidden">
+              {entry.avatar ? (
+                <img src={entry.avatar} alt={entry.name} className="w-full h-full object-cover" />
+              ) : (
+                entry.name.charAt(0).toUpperCase()
+              )}
             </div>
             
             <div className="flex-1 min-w-0">

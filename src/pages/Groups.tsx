@@ -273,7 +273,8 @@ export default function Groups() {
           user_id,
           profiles (
             id,
-            full_name
+            full_name,
+            avatar_url
           )
         `)
         .eq('group_id', groupId);
@@ -325,6 +326,7 @@ export default function Groups() {
             return {
               id: m.user_id,
               name: m.profiles?.full_name || 'Unknown',
+              avatar: m.profiles?.avatar_url || undefined,
               points,
               isCurrentUser: m.user_id === user!.id,
               cheers
