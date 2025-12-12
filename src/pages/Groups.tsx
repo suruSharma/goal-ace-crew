@@ -357,6 +357,23 @@ export default function Groups() {
     setCreating(true);
 
     try {
+      // Check for duplicate group name (case-insensitive)
+      const { data: existingGroup } = await supabase
+        .from('groups')
+        .select('id')
+        .ilike('name', newGroupName.trim())
+        .maybeSingle();
+
+      if (existingGroup) {
+        toast({
+          title: "Group name already exists",
+          description: "Please choose a different name for your group.",
+          variant: "destructive"
+        });
+        setCreating(false);
+        return;
+      }
+
       // Check 3-group limit before creating
       if (!(await checkGroupLimit())) {
         setCreating(false);
@@ -365,14 +382,25 @@ export default function Groups() {
       const { data: group, error: groupError } = await supabase
         .from('groups')
         .insert({
-          name: newGroupName,
+          name: newGroupName.trim(),
           description: newGroupDesc,
           created_by: user!.id
         })
         .select()
         .single();
 
-      if (groupError) throw groupError;
+      if (groupError) {
+        // Handle unique constraint violation
+        if (groupError.code === '23505') {
+          toast({
+            title: "Group name already exists",
+            description: "Please choose a different name for your group.",
+            variant: "destructive"
+          });
+          return;
+        }
+        throw groupError;
+      }
 
       await supabase
         .from('group_members')
