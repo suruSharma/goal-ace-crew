@@ -453,6 +453,7 @@ export type Database = {
       }
       user_challenges: {
         Row: {
+          completion_shown: boolean
           created_at: string | null
           current_day: number | null
           group_id: string | null
@@ -463,6 +464,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          completion_shown?: boolean
           created_at?: string | null
           current_day?: number | null
           group_id?: string | null
@@ -473,6 +475,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          completion_shown?: boolean
           created_at?: string | null
           current_day?: number | null
           group_id?: string | null
