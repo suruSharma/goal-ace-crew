@@ -39,6 +39,7 @@ interface Group {
   created_by: string;
   member_count: number;
   status: 'draft' | 'published';
+  total_days: number;
 }
 
 interface SearchGroup {
@@ -129,7 +130,8 @@ export default function Groups() {
               invite_code: g.invite_code || '',
               created_by: g.created_by || '',
               member_count: count || 0,
-              status: (g.status as 'draft' | 'published') || 'published'
+              status: (g.status as 'draft' | 'published') || 'published',
+              total_days: g.total_days || 75
             };
           }));
           
@@ -848,7 +850,13 @@ export default function Groups() {
                       <Badge variant="outline" className="text-xs">Draft</Badge>
                     )}
                   </div>
-                  <p className="text-sm text-muted-foreground">{group.member_count} members</p>
+                  <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                    <span>{group.member_count} members</span>
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {group.total_days} days
+                    </span>
+                  </div>
                   
                   <div className="flex items-center gap-2 mt-3 flex-wrap">
                     {group.status === 'published' && (
