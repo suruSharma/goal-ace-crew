@@ -828,20 +828,60 @@ export default function Dashboard() {
             </motion.div>
           )}
 
-          {/* Achievements Card */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.25 }}
-            className="bg-card rounded-2xl border border-border p-6"
-          >
-            <AchievementsDisplay
-              achievements={achievementsWithProgress}
-              unlockedCount={unlockedCount}
-              totalCount={totalCount}
-              compact
-            />
-          </motion.div>
+          {/* Group Stats - show when no active challenge but user is in groups */}
+          {!challenge && myGroups.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="bg-card rounded-2xl border border-border p-6"
+            >
+              <h3 className="font-display font-semibold mb-4 flex items-center gap-2">
+                <Users className="w-5 h-5 text-primary" />
+                Group Stats
+              </h3>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">Active Groups</span>
+                  <span className="font-bold">{myGroups.length}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">Total Points</span>
+                  <span className="font-bold text-primary">{myGroups.reduce((sum, g) => sum + g.userPoints, 0)}</span>
+                </div>
+                {myGroups.length > 0 && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Top Group</span>
+                    <span className="font-bold truncate max-w-[150px]">
+                      {myGroups.reduce((top, g) => g.userPoints > top.userPoints ? g : top, myGroups[0]).name}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+
+          {/* Motivational Empty State - no challenge and no groups */}
+          {!challenge && myGroups.length === 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="bg-gradient-to-br from-primary/10 via-accent/5 to-background rounded-2xl border border-primary/20 p-6 text-center"
+            >
+              <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Rocket className="w-8 h-8 text-primary" />
+              </div>
+              <h3 className="font-display font-semibold text-lg mb-2">Ready to Transform?</h3>
+              <p className="text-muted-foreground text-sm mb-4">
+                Start your 75 Hard challenge today and unlock your full potential. Every champion was once a beginner.
+              </p>
+              <Button onClick={() => setShowSetup(true)} className="w-full">
+                <Flame className="w-4 h-4 mr-2" />
+                Start Your Journey
+              </Button>
+            </motion.div>
+          )}
         </div>
 
         {/* Group Challenges Section */}
