@@ -1,13 +1,16 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { format, parseISO } from 'date-fns';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Save, Loader2, User, Scale, Target, Calendar, Trash2, Ruler, Plus } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { ArrowLeft, Save, Loader2, User, Scale, Target, CalendarIcon, Trash2, Ruler, Plus } from 'lucide-react';
 import { WeightProgressChart } from '@/components/WeightProgressChart';
 import {
   AlertDialog,
@@ -284,10 +287,8 @@ export default function Profile() {
       </header>
 
       <main className="container max-w-2xl mx-auto px-4 py-8 space-y-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-card rounded-2xl border border-border p-6"
+        <div
+          className="bg-card rounded-2xl border border-border p-6 animate-fade-in"
         >
           <div className="flex items-center gap-4 mb-8">
             <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary to-primary/50 flex items-center justify-center text-primary-foreground text-2xl font-bold">
@@ -315,17 +316,37 @@ export default function Profile() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="birthdate" className="flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-muted-foreground" />
+              <Label className="flex items-center gap-2">
+                <CalendarIcon className="w-4 h-4 text-muted-foreground" />
                 Birthdate
               </Label>
-              <Input
-                id="birthdate"
-                type="date"
-                value={profile.birthdate}
-                onChange={(e) => setProfile(p => ({ ...p, birthdate: e.target.value }))}
-                className="bg-secondary/50"
-              />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal bg-secondary/50",
+                      !profile.birthdate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {profile.birthdate ? format(parseISO(profile.birthdate), "PPP") : "Pick your birth date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={profile.birthdate ? parseISO(profile.birthdate) : undefined}
+                    onSelect={(date) => setProfile(p => ({ 
+                      ...p, 
+                      birthdate: date ? format(date, 'yyyy-MM-dd') : '' 
+                    }))}
+                    disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
 
             <div className="space-y-2">
@@ -412,14 +433,12 @@ export default function Profile() {
               )}
             </Button>
           </div>
-        </motion.div>
+        </div>
 
         {/* Weight Progress Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="bg-card rounded-2xl border border-border p-6"
+        <div
+          className="bg-card rounded-2xl border border-border p-6 animate-fade-in"
+          style={{ animationDelay: '0.1s' }}
         >
           <div className="flex items-center justify-between mb-6">
             <h3 className="font-display font-bold text-lg">Weight Progress</h3>
@@ -467,14 +486,12 @@ export default function Profile() {
             heightCm={profile.height_cm}
             goalWeight={profile.goal_weight}
           />
-        </motion.div>
+        </div>
 
         {/* Danger Zone */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="bg-card rounded-2xl border border-destructive/30 p-6"
+        <div
+          className="bg-card rounded-2xl border border-destructive/30 p-6 animate-fade-in"
+          style={{ animationDelay: '0.2s' }}
         >
           <h3 className="font-display font-bold text-lg text-destructive mb-2">Danger Zone</h3>
           <p className="text-sm text-muted-foreground mb-4">
@@ -512,7 +529,7 @@ export default function Profile() {
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
-        </motion.div>
+        </div>
       </main>
     </div>
   );
