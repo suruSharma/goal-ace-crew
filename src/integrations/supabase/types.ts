@@ -203,6 +203,7 @@ export type Database = {
           id: string
           invite_code: string | null
           name: string
+          status: string
         }
         Insert: {
           created_at?: string | null
@@ -211,6 +212,7 @@ export type Database = {
           id?: string
           invite_code?: string | null
           name: string
+          status?: string
         }
         Update: {
           created_at?: string | null
@@ -219,6 +221,7 @@ export type Database = {
           id?: string
           invite_code?: string | null
           name?: string
+          status?: string
         }
         Relationships: [
           {

@@ -14,10 +14,21 @@ import { useToast } from '@/hooks/use-toast';
 import { 
   Flame, LogOut, Users, Trophy, 
   Calendar, TrendingUp, Loader2, Settings2, Rocket,
-  ChevronLeft, ChevronRight
+  ChevronLeft, ChevronRight, RotateCcw
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { differenceInDays, parseISO, startOfDay } from 'date-fns';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 interface Task {
   id: string;
@@ -285,6 +296,47 @@ export default function Dashboard() {
     await fetchOrCreateTasks(challenge.id, day);
   };
 
+  const restartChallenge = async () => {
+    if (!challenge || !user) return;
+    
+    try {
+      // Delete all daily tasks for this challenge
+      await supabase
+        .from('daily_tasks')
+        .delete()
+        .eq('user_challenge_id', challenge.id);
+      
+      // Delete the challenge itself
+      await supabase
+        .from('user_challenges')
+        .delete()
+        .eq('id', challenge.id);
+      
+      // Delete user's custom templates (not default ones)
+      await supabase
+        .from('challenge_templates')
+        .delete()
+        .eq('created_by', user.id)
+        .eq('is_default', false)
+        .is('group_id', null);
+      
+      toast({
+        title: "Challenge reset!",
+        description: "You can now start a fresh challenge."
+      });
+      
+      setChallenge(null);
+      setTasks([]);
+      setShowSetup(true);
+    } catch (error: any) {
+      toast({
+        title: "Error restarting challenge",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  };
+
   const completedTasks = tasks.filter(t => t.completed).length;
   const totalPoints = tasks.filter(t => t.completed).reduce((sum, t) => sum + t.weight, 0);
   const progress = tasks.length > 0 ? (completedTasks / tasks.length) * 100 : 0;
@@ -367,15 +419,6 @@ export default function Dashboard() {
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
               <div className="flex items-center gap-4">
                 <DayCounter currentDay={challenge?.currentDay || 1} totalDays={challenge?.totalDays || 75} />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-xs"
-                  onClick={() => setShowSetup(true)}
-                >
-                  <Rocket className="w-3 h-3 mr-1" />
-                  Change
-                </Button>
               </div>
               <div className="flex items-center gap-8">
                 <div className="text-center">
@@ -421,6 +464,31 @@ export default function Dashboard() {
                 <span className="font-bold">{tasks.length - completedTasks}</span>
               </div>
             </div>
+            
+            {challenge && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="w-full mt-4 text-destructive hover:text-destructive">
+                    <RotateCcw className="w-4 h-4 mr-2" />
+                    Restart Challenge
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Restart Challenge?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will delete all your current progress and allow you to start a fresh challenge. Your weight history will be preserved.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={restartChallenge} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                      Restart
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
           </motion.div>
         </div>
 
