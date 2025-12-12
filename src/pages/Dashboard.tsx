@@ -164,7 +164,7 @@ export default function Dashboard() {
           id,
           completed,
           template_id,
-          challenge_templates (
+          challenges (
             id,
             name,
             description,
@@ -186,7 +186,7 @@ export default function Dashboard() {
         if (challenge) {
           // Try to get user's custom templates first
           let { data: templates } = await supabase
-            .from('challenge_templates')
+            .from('challenges')
             .select('*')
             .eq('created_by', challenge.user_id)
             .is('group_id', null);
@@ -194,7 +194,7 @@ export default function Dashboard() {
           // Fall back to defaults if no custom templates
           if (!templates || templates.length === 0) {
             const { data: defaultTemplates } = await supabase
-              .from('challenge_templates')
+              .from('challenges')
               .select('*')
               .eq('is_default', true);
             templates = defaultTemplates;
@@ -217,7 +217,7 @@ export default function Dashboard() {
                 id,
                 completed,
                 template_id,
-                challenge_templates (
+                challenges (
                   id,
                   name,
                   description,
@@ -236,9 +236,9 @@ export default function Dashboard() {
         const formattedTasks = dailyTasks.map((t: any) => ({
           id: t.id,
           templateId: t.template_id,
-          name: t.challenge_templates?.name || 'Unknown Task',
-          description: t.challenge_templates?.description || '',
-          weight: t.challenge_templates?.weight || 1,
+          name: t.challenges?.name || 'Unknown Task',
+          description: t.challenges?.description || '',
+          weight: t.challenges?.weight || 1,
           completed: t.completed
         }));
         setTasks(formattedTasks);
@@ -349,7 +349,7 @@ export default function Dashboard() {
       
       // Delete user's custom templates (not default ones)
       await supabase
-        .from('challenge_templates')
+        .from('challenges')
         .delete()
         .eq('created_by', user.id)
         .eq('is_default', false)

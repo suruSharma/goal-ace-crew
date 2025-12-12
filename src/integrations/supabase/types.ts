@@ -14,7 +14,7 @@ export type Database = {
   }
   public: {
     Tables: {
-      challenge_templates: {
+      challenges: {
         Row: {
           created_at: string | null
           created_by: string | null
@@ -147,7 +147,7 @@ export type Database = {
             foreignKeyName: "daily_tasks_template_id_fkey"
             columns: ["template_id"]
             isOneToOne: false
-            referencedRelation: "challenge_templates"
+            referencedRelation: "challenges"
             referencedColumns: ["id"]
           },
           {

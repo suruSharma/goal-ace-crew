@@ -69,7 +69,7 @@ export function ChallengeSetupDialog({
     setLoading(true);
     try {
       const { data } = await supabase
-        .from('challenge_templates')
+        .from('challenges')
         .select('*')
         .eq('is_default', true);
       
@@ -186,7 +186,7 @@ export function ChallengeSetupDialog({
         }));
 
         const { data: newTemplates, error: templatesError } = await supabase
-          .from('challenge_templates')
+          .from('challenges')
           .insert(templatesData)
           .select();
 
