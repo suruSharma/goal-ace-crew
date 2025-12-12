@@ -1,6 +1,12 @@
 import { motion } from 'framer-motion';
 import { Trophy, Medal, Award } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { CheerButton } from './CheerButton';
+
+interface CheerData {
+  emoji: string;
+  count: number;
+}
 
 interface LeaderboardEntry {
   id: string;
@@ -8,11 +14,15 @@ interface LeaderboardEntry {
   points: number;
   avatar?: string;
   isCurrentUser?: boolean;
+  cheers?: CheerData[];
 }
 
 interface LeaderboardCardProps {
   entries: LeaderboardEntry[];
   title?: string;
+  currentUserId?: string;
+  groupId?: string;
+  showCheers?: boolean;
 }
 
 const getRankIcon = (rank: number) => {
@@ -28,7 +38,13 @@ const getRankIcon = (rank: number) => {
   }
 };
 
-export function LeaderboardCard({ entries, title = "Leaderboard" }: LeaderboardCardProps) {
+export function LeaderboardCard({ 
+  entries, 
+  title = "Leaderboard",
+  currentUserId,
+  groupId,
+  showCheers = false
+}: LeaderboardCardProps) {
   return (
     <div className="bg-card rounded-2xl border border-border p-6">
       <h3 className="font-display text-xl font-semibold mb-4">{title}</h3>
@@ -64,9 +80,20 @@ export function LeaderboardCard({ entries, title = "Leaderboard" }: LeaderboardC
               </p>
             </div>
             
-            <div className="text-right">
-              <span className="font-display font-bold text-lg">{entry.points}</span>
-              <span className="text-muted-foreground text-sm ml-1">pts</span>
+            <div className="flex items-center gap-2">
+              {showCheers && currentUserId && groupId && (
+                <CheerButton
+                  fromUserId={currentUserId}
+                  toUserId={entry.id}
+                  toUserName={entry.name}
+                  groupId={groupId}
+                  existingCheers={entry.cheers}
+                />
+              )}
+              <div className="text-right">
+                <span className="font-display font-bold text-lg">{entry.points}</span>
+                <span className="text-muted-foreground text-sm ml-1">pts</span>
+              </div>
             </div>
           </motion.div>
         ))}

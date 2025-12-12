@@ -356,10 +356,21 @@ export default function Dashboard() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="md:col-span-2 bg-card rounded-2xl border border-border p-6"
+            className="md:col-span-2 bg-card rounded-2xl border border-border p-6 relative"
           >
-            <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-              <DayCounter currentDay={challenge?.currentDay || 1} totalDays={challenge?.totalDays || 75} />
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+              <div className="flex items-center gap-4">
+                <DayCounter currentDay={challenge?.currentDay || 1} totalDays={challenge?.totalDays || 75} />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-xs"
+                  onClick={() => setShowSetup(true)}
+                >
+                  <Rocket className="w-3 h-3 mr-1" />
+                  Change
+                </Button>
+              </div>
               <div className="flex items-center gap-8">
                 <div className="text-center">
                   <div className="flex items-center gap-2 text-primary">

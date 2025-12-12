@@ -82,42 +82,34 @@ export function ProfileSetupDialog({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const heightValue = convertHeightToCm();
-    
-    if (!birthdate || !currentWeight || !goalWeight || !goalDate || !heightValue) {
-      toast({
-        title: "Missing information",
-        description: "Please fill in all fields",
-        variant: "destructive"
-      });
-      return;
-    }
-
+    // No validation - allow empty fields
     setSaving(true);
     try {
-      const currentWeightKg = convertWeightToKg(parseFloat(currentWeight), weightUnit);
-      const goalWeightKg = convertWeightToKg(parseFloat(goalWeight), weightUnit);
-
+      const heightValue = convertHeightToCm();
+      const currentWeightKg = currentWeight ? convertWeightToKg(parseFloat(currentWeight), weightUnit) : null;
+      const goalWeightKg = goalWeight ? convertWeightToKg(parseFloat(goalWeight), weightUnit) : null;
       const { error } = await supabase
         .from('profiles')
         .update({
-          birthdate: format(birthdate, 'yyyy-MM-dd'),
+          birthdate: birthdate ? format(birthdate, 'yyyy-MM-dd') : null,
           current_weight: currentWeightKg,
           goal_weight: goalWeightKg,
-          goal_date: format(goalDate, 'yyyy-MM-dd'),
+          goal_date: goalDate ? format(goalDate, 'yyyy-MM-dd') : null,
           height_cm: heightValue
         })
         .eq('id', userId);
 
       if (error) throw error;
 
-      // Add initial weight to history
-      await supabase
-        .from('weight_history')
-        .insert({
-          user_id: userId,
-          weight_kg: currentWeightKg
-        });
+      // Add initial weight to history if provided
+      if (currentWeightKg) {
+        await supabase
+          .from('weight_history')
+          .insert({
+            user_id: userId,
+            weight_kg: currentWeightKg
+          });
+      }
 
       toast({
         title: "Profile updated!",
@@ -174,7 +166,7 @@ export function ProfileSetupDialog({
                   mode="single"
                   selected={birthdate}
                   onSelect={setBirthdate}
-                  disabled={(date) => date > maxBirthdate || date < new Date("1900-01-01")}
+                  disabled={(date) => date > maxBirthdate}
                   initialFocus
                   className={cn("p-3 pointer-events-auto")}
                 />

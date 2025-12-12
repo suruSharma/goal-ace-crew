@@ -105,10 +105,10 @@ const quotes = [
 ];
 
 export function MotivationalQuote() {
+  // Use session-based random selection (changes on each login/page refresh)
   const quote = useMemo(() => {
-    const today = new Date().toDateString();
-    const seed = today.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    return quotes[seed % quotes.length];
+    const randomIndex = Math.floor(Math.random() * quotes.length);
+    return quotes[randomIndex];
   }, []);
 
   return (
