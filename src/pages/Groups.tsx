@@ -614,6 +614,7 @@ export default function Groups() {
     return <SimpleLoadingSkeleton />;
   }
 
+  return (
     <>
       {/* Page Header with Actions */}
       <div className="container max-w-4xl mx-auto px-4 pt-6 pb-2">

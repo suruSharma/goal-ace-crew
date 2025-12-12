@@ -583,6 +583,7 @@ export default function Profile() {
     return <SimpleLoadingSkeleton />;
   }
 
+  return (
     <>
       <main className="container max-w-2xl mx-auto px-4 py-8 space-y-6">
         <div
