@@ -3,7 +3,7 @@ import { Label } from '@/components/ui/label';
 import { Moon, Sun, Monitor, Palette } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const colorThemes: { id: ColorTheme; name: string; color: string }[] = [
+const colorThemesList: { id: ColorTheme; name: string; color: string }[] = [
   { id: 'purple', name: 'Purple', color: 'bg-violet-500' },
   { id: 'coral', name: 'Coral', color: 'bg-orange-500' },
   { id: 'emerald', name: 'Emerald', color: 'bg-emerald-500' },
@@ -18,6 +18,13 @@ const themeModes: { id: ThemeMode; name: string; icon: typeof Sun }[] = [
 
 export function ThemeSettings() {
   const { colorTheme, mode, setColorTheme, setMode } = useTheme();
+
+  // Sort themes with selected theme first
+  const colorThemes = [...colorThemesList].sort((a, b) => {
+    if (a.id === colorTheme) return -1;
+    if (b.id === colorTheme) return 1;
+    return 0;
+  });
 
   return (
     <div className="space-y-6">
