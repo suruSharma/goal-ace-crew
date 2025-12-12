@@ -249,7 +249,7 @@ export default function Dashboard() {
 
   const handleChallengeCreated = async (challengeId: string) => {
     setShowSetup(false);
-    setLoading(true);
+    setTasksLoading(true);
     
     // Fetch the newly created challenge directly
     const { data: newChallenge } = await supabase
@@ -269,9 +269,9 @@ export default function Dashboard() {
       
       // Fetch tasks for day 1
       await fetchOrCreateTasks(newChallenge.id, 1);
+    } else {
+      setTasksLoading(false);
     }
-    
-    setLoading(false);
   };
 
   const toggleTask = async (taskId: string) => {
@@ -586,8 +586,9 @@ export default function Dashboard() {
           )}
           
           {tasksLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-6 h-6 animate-spin text-primary" />
+            <div className="flex flex-col items-center justify-center py-12 gap-3">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              <p className="text-sm text-muted-foreground animate-pulse">Loading tasks...</p>
             </div>
           ) : (
             <div className="grid gap-3">
