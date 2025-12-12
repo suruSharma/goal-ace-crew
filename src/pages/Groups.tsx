@@ -45,11 +45,17 @@ interface SearchGroup {
   tasks: { name: string; weight: number }[];
 }
 
+interface CheerData {
+  emoji: string;
+  count: number;
+}
+
 interface LeaderboardEntry {
   id: string;
   name: string;
   points: number;
   isCurrentUser: boolean;
+  cheers?: CheerData[];
 }
 
 export default function Groups() {
@@ -276,11 +282,30 @@ export default function Groups() {
               }
             }
 
+            // Fetch cheers for this user in this group
+            const { data: cheersData } = await supabase
+              .from('cheers')
+              .select('emoji')
+              .eq('to_user_id', m.user_id)
+              .eq('group_id', groupId);
+
+            const cheerCounts: Record<string, number> = {};
+            if (cheersData) {
+              cheersData.forEach((c: any) => {
+                cheerCounts[c.emoji] = (cheerCounts[c.emoji] || 0) + 1;
+              });
+            }
+
+            const cheers = Object.entries(cheerCounts)
+              .map(([emoji, count]) => ({ emoji, count }))
+              .sort((a, b) => b.count - a.count);
+
             return {
               id: m.user_id,
               name: m.profiles?.full_name || 'Unknown',
               points,
-              isCurrentUser: m.user_id === user!.id
+              isCurrentUser: m.user_id === user!.id,
+              cheers
             };
           })
         );
@@ -701,6 +726,9 @@ export default function Groups() {
                   <LeaderboardCard
                     entries={leaderboard}
                     title={`${selectedGroup.name} Leaderboard`}
+                    currentUserId={user?.id}
+                    groupId={selectedGroup.id}
+                    showCheers={true}
                   />
                 </motion.div>
               )}
