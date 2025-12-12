@@ -385,7 +385,8 @@ export default function Groups() {
         .insert({
           name: newGroupName.trim(),
           description: newGroupDesc,
-          created_by: user!.id
+          created_by: user!.id,
+          total_days: newGroupDays
         })
         .select()
         .single();
