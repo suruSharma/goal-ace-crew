@@ -433,7 +433,7 @@ export default function Dashboard() {
             Hello, {profileName}! 👋
           </h1>
           <div className="mt-3">
-            <MotivationalQuote />
+            <MotivationalQuote userId={user?.id} />
           </div>
         </motion.div>
 

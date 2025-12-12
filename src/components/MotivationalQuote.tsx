@@ -1,8 +1,10 @@
-import { useMemo } from 'react';
-import { motion } from 'framer-motion';
-import { Quote } from 'lucide-react';
+import { useMemo, useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Quote, Heart } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
-const quotes = [
+export const quotes = [
   // Navy SEALs & Military
   { text: "The only easy day was yesterday.", author: "Navy SEALs" },
   
@@ -137,14 +139,98 @@ const quotes = [
   { text: "The only thing standing between you and your goal is the story you keep telling yourself.", author: "Sadhguru" },
   { text: "If you resist change, you resist life.", author: "Sadhguru" },
   { text: "Do not wait for the perfect moment. Take the moment and make it perfect.", author: "Sadhguru" },
+  
+  // Indian Sports Personalities
+  { text: "I have never tried to compare myself with anyone else. I just try to do my best.", author: "Sachin Tendulkar" },
+  { text: "People throw stones at you and you convert them into milestones.", author: "Sachin Tendulkar" },
+  { text: "Chase your dreams because dreams do come true.", author: "Sachin Tendulkar" },
+  { text: "When people throw stones at you, turn them into milestones.", author: "Sachin Tendulkar" },
+  { text: "Enjoy the game and chase your dreams. Dreams do come true.", author: "Sachin Tendulkar" },
+  { text: "Self-belief and hard work will always earn you success.", author: "Virat Kohli" },
+  { text: "I just want to keep improving and keep winning for my team.", author: "Virat Kohli" },
+  { text: "Pressure is something you feel when you do not know what you are doing.", author: "Virat Kohli" },
+  { text: "Your attitude determines your direction.", author: "Virat Kohli" },
+  { text: "If you have the courage to face your fears, you have already won.", author: "Virat Kohli" },
+  { text: "The process is more important than the result.", author: "MS Dhoni" },
+  { text: "You do not play for the crowd, you play for the country.", author: "MS Dhoni" },
+  { text: "I believe in giving more than 100 percent on the field.", author: "MS Dhoni" },
+  { text: "Learn to remain calm and composed under pressure.", author: "MS Dhoni" },
+  { text: "Face the failures with a smile. The winners make it happen.", author: "MS Dhoni" },
+  { text: "Fitness is not about being better than someone else. It is about being better than you used to be.", author: "MS Dhoni" },
+  { text: "You learn a lot more when you are going through a tough time than when you are on top.", author: "MS Dhoni" },
+  { text: "Dream big and dare to fail.", author: "PV Sindhu" },
+  { text: "Success is not final and failure is not fatal. It is courage that counts.", author: "PV Sindhu" },
+  { text: "In the end, it is about how much you sacrifice for your goal.", author: "Mary Kom" },
+  { text: "I do not want to be known as a woman boxer. I want to be known as a great boxer.", author: "Mary Kom" },
+  { text: "Do not limit your challenges. Challenge your limits.", author: "Neeraj Chopra" },
 ];
 
-export function MotivationalQuote() {
+interface MotivationalQuoteProps {
+  userId?: string;
+}
+
+export function MotivationalQuote({ userId }: MotivationalQuoteProps) {
+  const { toast } = useToast();
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [saving, setSaving] = useState(false);
+
   // Use session-based random selection (changes on each login/page refresh)
   const quote = useMemo(() => {
     const randomIndex = Math.floor(Math.random() * quotes.length);
     return quotes[randomIndex];
   }, []);
+
+  // Check if this quote is already a favorite
+  useEffect(() => {
+    const checkFavorite = async () => {
+      if (!userId) return;
+      const { data } = await supabase
+        .from('favorite_quotes')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('quote_text', quote.text)
+        .maybeSingle();
+      setIsFavorite(!!data);
+    };
+    checkFavorite();
+  }, [userId, quote.text]);
+
+  const toggleFavorite = async () => {
+    if (!userId) return;
+    setSaving(true);
+
+    try {
+      if (isFavorite) {
+        // Remove from favorites
+        await supabase
+          .from('favorite_quotes')
+          .delete()
+          .eq('user_id', userId)
+          .eq('quote_text', quote.text);
+        setIsFavorite(false);
+        toast({ title: "Removed from favorites" });
+      } else {
+        // Add to favorites
+        await supabase
+          .from('favorite_quotes')
+          .insert({
+            user_id: userId,
+            quote_text: quote.text,
+            quote_author: quote.author
+          });
+        setIsFavorite(true);
+        toast({ title: "Added to favorites!" });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <motion.div
@@ -154,12 +240,35 @@ export function MotivationalQuote() {
       className="relative p-4 rounded-xl bg-primary/5 border border-primary/20"
     >
       <Quote className="absolute top-3 left-3 w-4 h-4 text-primary/40" />
-      <p className="text-sm italic text-muted-foreground pl-6">
+      <p className="text-sm italic text-muted-foreground pl-6 pr-8">
         "{quote.text}"
       </p>
       <p className="text-xs text-primary mt-2 text-right">
         — {quote.author}
       </p>
+      {userId && (
+        <button
+          onClick={toggleFavorite}
+          disabled={saving}
+          className="absolute top-3 right-3 p-1 rounded-full hover:bg-primary/10 transition-colors"
+          title={isFavorite ? "Remove from favorites" : "Save to favorites"}
+        >
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={isFavorite ? 'filled' : 'empty'}
+              initial={{ scale: 0.8 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.8 }}
+            >
+              <Heart 
+                className={`w-4 h-4 transition-colors ${
+                  isFavorite ? 'fill-red-500 text-red-500' : 'text-muted-foreground hover:text-red-500'
+                }`} 
+              />
+            </motion.div>
+          </AnimatePresence>
+        </button>
+      )}
     </motion.div>
   );
 }

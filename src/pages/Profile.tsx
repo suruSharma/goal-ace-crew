@@ -10,8 +10,9 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { ArrowLeft, Save, Loader2, User, Scale, Target, CalendarIcon, Trash2, Ruler, Plus, Camera, Users, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, User, Scale, Target, CalendarIcon, Trash2, Ruler, Plus, Camera, Users, AlertTriangle, Heart } from 'lucide-react';
 import { WeightProgressChart } from '@/components/WeightProgressChart';
+import { FavoriteQuotes } from '@/components/FavoriteQuotes';
 import { SimpleLoadingSkeleton } from '@/components/PageLoadingSkeleton';
 import {
   AlertDialog,
@@ -749,6 +750,18 @@ export default function Profile() {
             heightCm={profile.height_cm}
             goalWeight={profile.goal_weight}
           />
+        </div>
+
+        {/* Favorite Quotes Section */}
+        <div
+          className="bg-card rounded-2xl border border-border p-6 animate-fade-in"
+          style={{ animationDelay: '0.15s' }}
+        >
+          <h3 className="font-display font-bold text-lg flex items-center gap-2 mb-4">
+            <Heart className="w-5 h-5 text-red-500" />
+            Favorite Quotes
+          </h3>
+          <FavoriteQuotes userId={user!.id} />
         </div>
 
         {/* Danger Zone */}
