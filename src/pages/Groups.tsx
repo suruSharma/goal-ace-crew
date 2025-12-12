@@ -12,8 +12,9 @@ import { useToast } from '@/hooks/use-toast';
 import { 
   ArrowLeft, Plus, Users, Copy, LogOut, 
   Loader2, UserPlus, Settings2, Zap, ListChecks,
-  Search, Eye, X
+  Search, Eye, X, Send, Clock
 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
   DialogContent,
@@ -35,6 +36,7 @@ interface Group {
   invite_code: string;
   created_by: string;
   member_count: number;
+  status: 'draft' | 'published';
 }
 
 interface SearchGroup {
@@ -68,6 +70,7 @@ export default function Groups() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [newGroupName, setNewGroupName] = useState('');
   const [newGroupDesc, setNewGroupDesc] = useState('');
+  const [newGroupDays, setNewGroupDays] = useState(75);
   const [useDefaultTasks, setUseDefaultTasks] = useState(true);
   const [joinCode, setJoinCode] = useState('');
   const [creating, setCreating] = useState(false);
@@ -75,6 +78,7 @@ export default function Groups() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [joinDialogOpen, setJoinDialogOpen] = useState(false);
   const [newGroupId, setNewGroupId] = useState<string | null>(null);
+  const [publishing, setPublishing] = useState<string | null>(null);
   
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
@@ -110,16 +114,20 @@ export default function Groups() {
           .in('id', groupIds);
 
         if (groups) {
-          const groupsWithCount = await Promise.all(groups.map(async (g) => {
+          const groupsWithCount: Group[] = await Promise.all(groups.map(async (g) => {
             const { count } = await supabase
               .from('group_members')
               .select('*', { count: 'exact', head: true })
               .eq('group_id', g.id);
             
             return { 
-              ...g, 
+              id: g.id,
+              name: g.name,
+              description: g.description || '',
+              invite_code: g.invite_code || '',
+              created_by: g.created_by || '',
               member_count: count || 0,
-              created_by: g.created_by || ''
+              status: (g.status as 'draft' | 'published') || 'published'
             };
           }));
           
@@ -153,6 +161,7 @@ export default function Groups() {
         .from('groups')
         .select('id, name, description')
         .ilike('name', `%${searchQuery}%`)
+        .eq('status', 'published')
         .limit(10);
 
       if (groups) {
@@ -379,6 +388,7 @@ export default function Groups() {
       setCreateDialogOpen(false);
       setNewGroupName('');
       setNewGroupDesc('');
+      setNewGroupDays(75);
       
       if (!useDefaultTasks) {
         setNewGroupId(group.id);
@@ -507,6 +517,33 @@ export default function Groups() {
         description: error.message,
         variant: "destructive"
       });
+    }
+  };
+
+  const publishGroup = async (groupId: string) => {
+    setPublishing(groupId);
+    try {
+      const { error } = await supabase
+        .from('groups')
+        .update({ status: 'published' })
+        .eq('id', groupId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Group published!",
+        description: "Members can now join and track their progress."
+      });
+
+      fetchGroups();
+    } catch (error: any) {
+      toast({
+        title: "Error publishing group",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setPublishing(null);
     }
   };
 
@@ -654,6 +691,28 @@ export default function Groups() {
                   </div>
                   
                   <div className="space-y-2">
+                    <Label>Challenge Duration</Label>
+                    <div className="grid grid-cols-4 gap-2">
+                      {[7, 30, 75, 90].map((days) => (
+                        <button
+                          key={days}
+                          type="button"
+                          onClick={() => setNewGroupDays(days)}
+                          className={`p-2 rounded-lg border text-center transition-all text-sm ${
+                            newGroupDays === days
+                              ? 'bg-primary/10 border-primary/30'
+                              : 'bg-card border-border hover:border-primary/30'
+                          }`}
+                        >
+                          <Clock className="w-4 h-4 mx-auto mb-1 text-primary" />
+                          <span className="font-medium">{days}</span>
+                          <p className="text-xs text-muted-foreground">days</p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
                     <Label>Challenge Tasks</Label>
                     <div className="grid grid-cols-2 gap-2">
                       <button
@@ -689,6 +748,10 @@ export default function Groups() {
                       </button>
                     </div>
                   </div>
+                  
+                  <p className="text-xs text-muted-foreground">
+                    Your group will be created as a draft. You can configure tasks and publish it when ready.
+                  </p>
                   
                   <Button onClick={createGroup} className="w-full" disabled={creating}>
                     {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Create Group'}
@@ -733,35 +796,62 @@ export default function Groups() {
                       : 'bg-card border-border hover:border-primary/30'
                   }`}
                 >
-                  <h3 className="font-semibold">{group.name}</h3>
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="font-semibold">{group.name}</h3>
+                    {group.status === 'draft' && (
+                      <Badge variant="outline" className="text-xs">Draft</Badge>
+                    )}
+                  </div>
                   <p className="text-sm text-muted-foreground">{group.member_count} members</p>
                   
                   <div className="flex items-center gap-2 mt-3 flex-wrap">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        copyInviteCode(group.invite_code);
-                      }}
-                    >
-                      <Copy className="w-4 h-4 mr-1" />
-                      {group.invite_code}
-                    </Button>
-                    {group.created_by === user!.id && (
-                      <div onClick={(e) => e.stopPropagation()}>
-                        <TaskConfigDialog
-                          groupId={group.id}
-                          userId={user!.id}
-                          isGroupCreator={true}
-                          onSave={() => fetchLeaderboard(group.id)}
-                          trigger={
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <Settings2 className="w-4 h-4" />
-                            </Button>
-                          }
-                        />
-                      </div>
+                    {group.status === 'published' && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          copyInviteCode(group.invite_code);
+                        }}
+                      >
+                        <Copy className="w-4 h-4 mr-1" />
+                        {group.invite_code}
+                      </Button>
+                    )}
+                    {group.created_by === user!.id && group.status === 'draft' && (
+                      <>
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <TaskConfigDialog
+                            groupId={group.id}
+                            userId={user!.id}
+                            isGroupCreator={true}
+                            onSave={() => fetchLeaderboard(group.id)}
+                            trigger={
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <Settings2 className="w-4 h-4" />
+                              </Button>
+                            }
+                          />
+                        </div>
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            publishGroup(group.id);
+                          }}
+                          disabled={publishing === group.id}
+                        >
+                          {publishing === group.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <>
+                              <Send className="w-4 h-4 mr-1" />
+                              Publish
+                            </>
+                          )}
+                        </Button>
+                      </>
                     )}
                     <Button
                       variant="ghost"
