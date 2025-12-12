@@ -1,7 +1,8 @@
 import { motion } from 'framer-motion';
-import { Trophy, Medal, Award } from 'lucide-react';
+import { Trophy, Medal, Award, UserX } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CheerButton } from './CheerButton';
+import { Button } from './ui/button';
 
 interface CheerData {
   emoji: string;
@@ -23,6 +24,8 @@ interface LeaderboardCardProps {
   currentUserId?: string;
   groupId?: string;
   showCheers?: boolean;
+  isGroupOwner?: boolean;
+  onRemoveMember?: (userId: string, userName: string) => void;
 }
 
 const getRankIcon = (rank: number) => {
@@ -43,7 +46,9 @@ export function LeaderboardCard({
   title = "Leaderboard",
   currentUserId,
   groupId,
-  showCheers = false
+  showCheers = false,
+  isGroupOwner = false,
+  onRemoveMember
 }: LeaderboardCardProps) {
   return (
     <div className="bg-card rounded-2xl border border-border p-6">
@@ -94,6 +99,16 @@ export function LeaderboardCard({
                 <span className="font-display font-bold text-lg">{entry.points}</span>
                 <span className="text-muted-foreground text-sm ml-1">pts</span>
               </div>
+              {isGroupOwner && !entry.isCurrentUser && onRemoveMember && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                  onClick={() => onRemoveMember(entry.id, entry.name)}
+                >
+                  <UserX className="w-4 h-4" />
+                </Button>
+              )}
             </div>
           </motion.div>
         ))}
