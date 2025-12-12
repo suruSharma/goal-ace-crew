@@ -861,27 +861,6 @@ export default function Dashboard() {
             </motion.div>
           )}
 
-          {/* Motivational Empty State - no challenge and no groups */}
-          {!challenge && myGroups.length === 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="bg-gradient-to-br from-primary/10 via-accent/5 to-background rounded-2xl border border-primary/20 p-6 text-center"
-            >
-              <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Rocket className="w-8 h-8 text-primary" />
-              </div>
-              <h3 className="font-display font-semibold text-lg mb-2">Ready to Transform?</h3>
-              <p className="text-muted-foreground text-sm mb-4">
-                Start your 75 Hard challenge today and unlock your full potential. Every champion was once a beginner.
-              </p>
-              <Button onClick={() => setShowSetup(true)} className="w-full">
-                <Flame className="w-4 h-4 mr-2" />
-                Start Your Journey
-              </Button>
-            </motion.div>
-          )}
         </div>
 
         {/* Group Challenges Section */}
