@@ -20,9 +20,10 @@ import { useToast } from '@/hooks/use-toast';
 import { 
   Flame, LogOut, Users, Trophy, 
   Calendar, TrendingUp, Loader2, Rocket,
-  ChevronLeft, ChevronRight, RotateCcw
+  ChevronLeft, ChevronRight, RotateCcw, UserPlus
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { Input } from '@/components/ui/input';
 import { differenceInDays, parseISO, startOfDay } from 'date-fns';
 import {
   AlertDialog,
@@ -75,6 +76,9 @@ export default function Dashboard() {
   const [tasksLoading, setTasksLoading] = useState(false);
   const [totalCompletedTasks, setTotalCompletedTasks] = useState(0);
   const [totalChallengePoints, setTotalChallengePoints] = useState(0);
+  const [inviteCode, setInviteCode] = useState('');
+  const [joiningGroup, setJoiningGroup] = useState(false);
+  const [myGroups, setMyGroups] = useState<{ id: string; name: string; memberCount: number; userPoints: number }[]>([]);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -119,6 +123,9 @@ export default function Dashboard() {
         .eq('user_id', user!.id)
         .eq('is_active', true)
         .maybeSingle();
+
+      // Fetch user's groups
+      await fetchUserGroups();
 
       if (!existingChallenge) {
         // No active challenge - user can start one manually if they want
@@ -168,6 +175,128 @@ export default function Dashboard() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchUserGroups = async () => {
+    try {
+      const { data: memberships } = await supabase
+        .from('group_members')
+        .select('group_id')
+        .eq('user_id', user!.id);
+
+      if (memberships && memberships.length > 0) {
+        const groupIds = memberships.map(m => m.group_id);
+        
+        const { data: groups } = await supabase
+          .from('groups')
+          .select('id, name')
+          .in('id', groupIds)
+          .eq('status', 'published');
+
+        if (groups) {
+          const groupsWithStats = await Promise.all(groups.map(async (g) => {
+            const { count } = await supabase
+              .from('group_members')
+              .select('*', { count: 'exact', head: true })
+              .eq('group_id', g.id);
+
+            // Get user's points in this group
+            const { data: userChallenge } = await supabase
+              .from('user_challenges')
+              .select('id')
+              .eq('user_id', user!.id)
+              .eq('is_active', true)
+              .maybeSingle();
+
+            let userPoints = 0;
+            if (userChallenge) {
+              const { data: tasks } = await supabase
+                .from('daily_tasks')
+                .select(`completed, challenges (weight)`)
+                .eq('user_challenge_id', userChallenge.id)
+                .eq('completed', true);
+
+              if (tasks) {
+                userPoints = tasks.reduce((sum: number, t: any) => sum + (t.challenges?.weight || 0), 0);
+              }
+            }
+
+            return {
+              id: g.id,
+              name: g.name,
+              memberCount: count || 0,
+              userPoints
+            };
+          }));
+
+          setMyGroups(groupsWithStats);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching user groups:', error);
+    }
+  };
+
+  const handleQuickJoinGroup = async () => {
+    if (!inviteCode.trim()) return;
+    setJoiningGroup(true);
+
+    try {
+      // Check 3-group limit
+      const { count } = await supabase
+        .from('group_members')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user!.id);
+      
+      if (count && count >= 3) {
+        toast({
+          title: "Group limit reached",
+          description: "You can only be a member of up to 3 groups",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const { data: group, error: findError } = await supabase
+        .from('groups')
+        .select('id, name')
+        .eq('invite_code', inviteCode.toLowerCase().trim())
+        .maybeSingle();
+
+      if (findError || !group) {
+        throw new Error('Invalid invite code');
+      }
+
+      const { error: joinError } = await supabase
+        .from('group_members')
+        .insert({
+          group_id: group.id,
+          user_id: user!.id
+        });
+
+      if (joinError) {
+        if (joinError.code === '23505') {
+          throw new Error('You are already a member of this group');
+        }
+        throw joinError;
+      }
+
+      toast({
+        title: "Joined group!",
+        description: `Welcome to ${group.name}`
+      });
+
+      setInviteCode('');
+      fetchUserGroups();
+    } catch (error: any) {
+      toast({
+        title: "Error joining group",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setJoiningGroup(false);
     }
   };
 
@@ -569,11 +698,11 @@ export default function Dashboard() {
                 </div>
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center py-8 text-center">
-                <Rocket className="w-12 h-12 text-primary mb-4" />
+              <div className="flex flex-col items-center justify-center py-6 text-center">
+                <Rocket className="w-10 h-10 text-primary mb-3" />
                 <h3 className="font-display font-semibold text-lg mb-2">No Active Challenge</h3>
-                <p className="text-muted-foreground mb-4">Start a personal challenge or join a group</p>
-                <div className="flex flex-wrap gap-3 justify-center">
+                <p className="text-muted-foreground mb-4 text-sm">Start a personal challenge or join a group</p>
+                <div className="flex flex-wrap gap-3 justify-center mb-4">
                   <Button onClick={() => setShowSetup(true)} className="gap-2">
                     <Flame className="w-4 h-4" />
                     Start Challenge
@@ -581,9 +710,30 @@ export default function Dashboard() {
                   <Button variant="outline" asChild className="gap-2">
                     <Link to="/groups">
                       <Users className="w-4 h-4" />
-                      Join a Group
+                      Browse Groups
                     </Link>
                   </Button>
+                </div>
+                
+                {/* Quick Join with Invite Code */}
+                <div className="w-full max-w-xs pt-4 border-t border-border">
+                  <p className="text-xs text-muted-foreground mb-2">Have an invite code?</p>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Enter code"
+                      value={inviteCode}
+                      onChange={(e) => setInviteCode(e.target.value)}
+                      className="text-sm"
+                      onKeyDown={(e) => e.key === 'Enter' && handleQuickJoinGroup()}
+                    />
+                    <Button 
+                      size="sm" 
+                      onClick={handleQuickJoinGroup}
+                      disabled={joiningGroup || !inviteCode.trim()}
+                    >
+                      {joiningGroup ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
+                    </Button>
+                  </div>
                 </div>
               </div>
             )}
@@ -681,6 +831,49 @@ export default function Dashboard() {
             />
           </motion.div>
         </div>
+
+        {/* Group Challenges Section */}
+        {myGroups.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.35 }}
+            className="mb-8"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-display font-semibold flex items-center gap-2">
+                <Users className="w-5 h-5 text-primary" />
+                My Groups
+              </h2>
+              <Button variant="ghost" size="sm" asChild>
+                <Link to="/groups">View All</Link>
+              </Button>
+            </div>
+            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+              {myGroups.map((group) => (
+                <Link 
+                  key={group.id} 
+                  to="/groups"
+                  className="block"
+                >
+                  <div className="bg-card rounded-xl border border-border p-4 hover:border-primary/50 transition-colors">
+                    <div className="flex items-start justify-between mb-2">
+                      <h3 className="font-semibold truncate">{group.name}</h3>
+                      <span className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Users className="w-3 h-3" />
+                        {group.memberCount}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Your Points</span>
+                      <span className="font-bold text-primary">{group.userPoints}</span>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </motion.div>
+        )}
 
         {/* Day Tasks */}
         <motion.div
