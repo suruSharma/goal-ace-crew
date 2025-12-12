@@ -188,6 +188,7 @@ export type Database = {
           full_name: string | null
           goal_date: string | null
           goal_weight: number | null
+          height_cm: number | null
           id: string
           timezone: string | null
           updated_at: string | null
@@ -201,6 +202,7 @@ export type Database = {
           full_name?: string | null
           goal_date?: string | null
           goal_weight?: number | null
+          height_cm?: number | null
           id: string
           timezone?: string | null
           updated_at?: string | null
@@ -214,6 +216,7 @@ export type Database = {
           full_name?: string | null
           goal_date?: string | null
           goal_weight?: number | null
+          height_cm?: number | null
           id?: string
           timezone?: string | null
           updated_at?: string | null
@@ -261,6 +264,38 @@ export type Database = {
           },
           {
             foreignKeyName: "user_challenges_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      weight_history: {
+        Row: {
+          created_at: string
+          id: string
+          recorded_at: string
+          user_id: string
+          weight_kg: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          recorded_at?: string
+          user_id: string
+          weight_kg: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          recorded_at?: string
+          user_id?: string
+          weight_kg?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "weight_history_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"

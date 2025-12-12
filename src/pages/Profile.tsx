@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Save, Loader2, User, Scale, Target, Calendar, Trash2 } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, User, Scale, Target, Calendar, Trash2, Ruler, Plus } from 'lucide-react';
+import { WeightProgressChart } from '@/components/WeightProgressChart';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,12 +20,26 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 interface ProfileData {
   full_name: string;
   birthdate: string;
   current_weight: number | null;
   goal_weight: number | null;
+  height_cm: number | null;
+}
+
+interface WeightEntry {
+  id: string;
+  weight_kg: number;
+  recorded_at: string;
 }
 
 export default function Profile() {
@@ -38,8 +53,26 @@ export default function Profile() {
     full_name: '',
     birthdate: '',
     current_weight: null,
-    goal_weight: null
+    goal_weight: null,
+    height_cm: null
   });
+  const [weightHistory, setWeightHistory] = useState<WeightEntry[]>([]);
+  const [newWeight, setNewWeight] = useState('');
+  const [addingWeight, setAddingWeight] = useState(false);
+  const [weightDialogOpen, setWeightDialogOpen] = useState(false);
+
+  const calculatedBMI = useMemo(() => {
+    if (!profile.height_cm || !profile.current_weight) return null;
+    const bmi = profile.current_weight / Math.pow(profile.height_cm / 100, 2);
+    return Math.round(bmi * 10) / 10;
+  }, [profile.height_cm, profile.current_weight]);
+
+  const getBMICategory = (bmi: number): string => {
+    if (bmi < 18.5) return 'Underweight';
+    if (bmi < 25) return 'Normal';
+    if (bmi < 30) return 'Overweight';
+    return 'Obese';
+  };
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -50,6 +83,7 @@ export default function Profile() {
   useEffect(() => {
     if (user) {
       fetchProfile();
+      fetchWeightHistory();
     }
   }, [user]);
 
@@ -57,7 +91,7 @@ export default function Profile() {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('full_name, birthdate, current_weight, goal_weight')
+        .select('full_name, birthdate, current_weight, goal_weight, height_cm')
         .eq('id', user!.id)
         .maybeSingle();
 
@@ -68,7 +102,8 @@ export default function Profile() {
           full_name: data.full_name || '',
           birthdate: data.birthdate || '',
           current_weight: data.current_weight,
-          goal_weight: data.goal_weight
+          goal_weight: data.goal_weight,
+          height_cm: data.height_cm
         });
       }
     } catch (error: any) {
@@ -82,6 +117,66 @@ export default function Profile() {
     }
   };
 
+  const fetchWeightHistory = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('weight_history')
+        .select('id, weight_kg, recorded_at')
+        .eq('user_id', user!.id)
+        .order('recorded_at', { ascending: true });
+
+      if (error) throw error;
+      setWeightHistory(data || []);
+    } catch (error: any) {
+      console.error('Error fetching weight history:', error);
+    }
+  };
+
+  const handleAddWeight = async () => {
+    if (!newWeight) return;
+    
+    setAddingWeight(true);
+    try {
+      const weightKg = parseFloat(newWeight);
+      
+      // Add to weight history
+      const { error: historyError } = await supabase
+        .from('weight_history')
+        .insert({
+          user_id: user!.id,
+          weight_kg: weightKg
+        });
+
+      if (historyError) throw historyError;
+
+      // Update current weight in profile
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ current_weight: weightKg })
+        .eq('id', user!.id);
+
+      if (profileError) throw profileError;
+
+      setProfile(p => ({ ...p, current_weight: weightKg }));
+      setNewWeight('');
+      setWeightDialogOpen(false);
+      await fetchWeightHistory();
+
+      toast({
+        title: "Weight updated!",
+        description: "Your progress has been recorded."
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error adding weight",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setAddingWeight(false);
+    }
+  };
+
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -91,7 +186,8 @@ export default function Profile() {
           full_name: profile.full_name,
           birthdate: profile.birthdate || null,
           current_weight: profile.current_weight,
-          goal_weight: profile.goal_weight
+          goal_weight: profile.goal_weight,
+          height_cm: profile.height_cm
         })
         .eq('id', user!.id);
 
@@ -115,7 +211,6 @@ export default function Profile() {
   const handleDeleteProfile = async () => {
     setDeleting(true);
     try {
-      // Delete user's challenges and related data first
       const { data: challenges } = await supabase
         .from('user_challenges')
         .select('id')
@@ -134,13 +229,16 @@ export default function Profile() {
           .eq('user_id', user!.id);
       }
 
-      // Delete group memberships
       await supabase
         .from('group_members')
         .delete()
         .eq('user_id', user!.id);
 
-      // Delete profile
+      await supabase
+        .from('weight_history')
+        .delete()
+        .eq('user_id', user!.id);
+
       await supabase
         .from('profiles')
         .delete()
@@ -230,6 +328,25 @@ export default function Profile() {
               />
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="height" className="flex items-center gap-2">
+                <Ruler className="w-4 h-4 text-muted-foreground" />
+                Height (cm)
+              </Label>
+              <Input
+                id="height"
+                type="number"
+                step="0.1"
+                value={profile.height_cm || ''}
+                onChange={(e) => setProfile(p => ({ 
+                  ...p, 
+                  height_cm: e.target.value ? parseFloat(e.target.value) : null 
+                }))}
+                placeholder="175"
+                className="bg-secondary/50"
+              />
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="currentWeight" className="flex items-center gap-2">
@@ -270,6 +387,16 @@ export default function Profile() {
               </div>
             </div>
 
+            {calculatedBMI && (
+              <div className="p-4 rounded-lg bg-secondary/50 border border-border">
+                <Label className="text-xs text-muted-foreground">Current BMI</Label>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-bold text-primary">{calculatedBMI}</span>
+                  <span className="text-sm text-muted-foreground">({getBMICategory(calculatedBMI)})</span>
+                </div>
+              </div>
+            )}
+
             <Button 
               onClick={handleSave} 
               className="w-full h-12"
@@ -287,11 +414,66 @@ export default function Profile() {
           </div>
         </motion.div>
 
-        {/* Danger Zone */}
+        {/* Weight Progress Section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
+          className="bg-card rounded-2xl border border-border p-6"
+        >
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="font-display font-bold text-lg">Weight Progress</h3>
+            <Dialog open={weightDialogOpen} onOpenChange={setWeightDialogOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm">
+                  <Plus className="w-4 h-4 mr-1" />
+                  Log Weight
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Log Your Weight</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 pt-4">
+                  <div className="space-y-2">
+                    <Label>Weight (kg)</Label>
+                    <Input
+                      type="number"
+                      step="0.1"
+                      value={newWeight}
+                      onChange={(e) => setNewWeight(e.target.value)}
+                      placeholder="Enter your current weight"
+                      className="bg-secondary/50"
+                    />
+                  </div>
+                  <Button 
+                    onClick={handleAddWeight} 
+                    className="w-full"
+                    disabled={addingWeight || !newWeight}
+                  >
+                    {addingWeight ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      "Save Weight"
+                    )}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          <WeightProgressChart 
+            data={weightHistory} 
+            heightCm={profile.height_cm}
+            goalWeight={profile.goal_weight}
+          />
+        </motion.div>
+
+        {/* Danger Zone */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
           className="bg-card rounded-2xl border border-destructive/30 p-6"
         >
           <h3 className="font-display font-bold text-lg text-destructive mb-2">Danger Zone</h3>
