@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -11,7 +11,8 @@ import { TaskConfigDialog } from '@/components/TaskConfigDialog';
 import { useToast } from '@/hooks/use-toast';
 import { 
   ArrowLeft, Plus, Users, Copy, LogOut, 
-  Loader2, UserPlus, Settings2, Zap, ListChecks
+  Loader2, UserPlus, Settings2, Zap, ListChecks,
+  Search, Eye, X
 } from 'lucide-react';
 import {
   Dialog,
@@ -20,6 +21,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 
 interface Group {
   id: string;
@@ -28,6 +35,14 @@ interface Group {
   invite_code: string;
   created_by: string;
   member_count: number;
+}
+
+interface SearchGroup {
+  id: string;
+  name: string;
+  description: string;
+  member_count: number;
+  tasks: { name: string; weight: number }[];
 }
 
 interface LeaderboardEntry {
@@ -54,6 +69,12 @@ export default function Groups() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [joinDialogOpen, setJoinDialogOpen] = useState(false);
   const [newGroupId, setNewGroupId] = useState<string | null>(null);
+  
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<SearchGroup[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [previewGroup, setPreviewGroup] = useState<SearchGroup | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -114,6 +135,108 @@ export default function Groups() {
     }
   };
 
+  const searchGroups = async () => {
+    if (!searchQuery.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    setSearching(true);
+    try {
+      const { data: groups } = await supabase
+        .from('groups')
+        .select('id, name, description')
+        .ilike('name', `%${searchQuery}%`)
+        .limit(10);
+
+      if (groups) {
+        const groupsWithDetails = await Promise.all(groups.map(async (g) => {
+          const { count } = await supabase
+            .from('group_members')
+            .select('*', { count: 'exact', head: true })
+            .eq('group_id', g.id);
+
+          // Get group's task templates
+          const { data: templates } = await supabase
+            .from('challenge_templates')
+            .select('name, weight')
+            .eq('group_id', g.id);
+
+          // If no custom templates, get defaults
+          let tasks = templates || [];
+          if (tasks.length === 0) {
+            const { data: defaultTemplates } = await supabase
+              .from('challenge_templates')
+              .select('name, weight')
+              .eq('is_default', true);
+            tasks = defaultTemplates || [];
+          }
+
+          return {
+            ...g,
+            member_count: count || 0,
+            tasks: tasks.map(t => ({ name: t.name, weight: t.weight || 1 }))
+          };
+        }));
+
+        setSearchResults(groupsWithDetails);
+      }
+    } catch (error) {
+      console.error('Error searching groups:', error);
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const joinGroupById = async (groupId: string) => {
+    setJoining(true);
+    try {
+      // Check if already a member
+      const { data: existing } = await supabase
+        .from('group_members')
+        .select('id')
+        .eq('group_id', groupId)
+        .eq('user_id', user!.id)
+        .maybeSingle();
+
+      if (existing) {
+        toast({
+          title: "Already a member",
+          description: "You are already a member of this group",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const { error } = await supabase
+        .from('group_members')
+        .insert({
+          group_id: groupId,
+          user_id: user!.id
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Joined group!",
+        description: "Welcome to the group"
+      });
+
+      setPreviewGroup(null);
+      setSearchQuery('');
+      setSearchResults([]);
+      fetchGroups();
+    } catch (error: any) {
+      toast({
+        title: "Error joining group",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setJoining(false);
+    }
+  };
+
   const fetchLeaderboard = async (groupId: string) => {
     try {
       const { data: members } = await supabase
@@ -130,7 +253,6 @@ export default function Groups() {
       if (members) {
         const entries: LeaderboardEntry[] = await Promise.all(
           members.map(async (m: any) => {
-            // Get user's challenge
             const { data: challenge } = await supabase
               .from('user_challenges')
               .select('id')
@@ -140,7 +262,6 @@ export default function Groups() {
 
             let points = 0;
             if (challenge) {
-              // Get completed tasks with weights
               const { data: tasks } = await supabase
                 .from('daily_tasks')
                 .select(`
@@ -189,7 +310,6 @@ export default function Groups() {
 
       if (groupError) throw groupError;
 
-      // Join the group
       await supabase
         .from('group_members')
         .insert({
@@ -206,7 +326,6 @@ export default function Groups() {
       setNewGroupName('');
       setNewGroupDesc('');
       
-      // If custom tasks selected, open task config for the new group
       if (!useDefaultTasks) {
         setNewGroupId(group.id);
       }
@@ -332,24 +451,86 @@ export default function Groups() {
                   Join
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="max-w-lg">
                 <DialogHeader>
                   <DialogTitle>Join a Group</DialogTitle>
                 </DialogHeader>
-                <div className="space-y-4 pt-4">
-                  <div className="space-y-2">
-                    <Label>Invite Code</Label>
-                    <Input
-                      value={joinCode}
-                      onChange={(e) => setJoinCode(e.target.value)}
-                      placeholder="Enter invite code"
-                      className="bg-secondary/50"
-                    />
-                  </div>
-                  <Button onClick={joinGroup} className="w-full" disabled={joining}>
-                    {joining ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Join Group'}
-                  </Button>
-                </div>
+                
+                <Tabs defaultValue="code" className="mt-4">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="code">Invite Code</TabsTrigger>
+                    <TabsTrigger value="search">Search Groups</TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="code" className="space-y-4 pt-4">
+                    <div className="space-y-2">
+                      <Label>Invite Code</Label>
+                      <Input
+                        value={joinCode}
+                        onChange={(e) => setJoinCode(e.target.value)}
+                        placeholder="Enter invite code"
+                        className="bg-secondary/50"
+                      />
+                    </div>
+                    <Button onClick={joinGroup} className="w-full" disabled={joining}>
+                      {joining ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Join Group'}
+                    </Button>
+                  </TabsContent>
+                  
+                  <TabsContent value="search" className="space-y-4 pt-4">
+                    <div className="flex gap-2">
+                      <Input
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Search by group name..."
+                        className="bg-secondary/50"
+                        onKeyDown={(e) => e.key === 'Enter' && searchGroups()}
+                      />
+                      <Button onClick={searchGroups} disabled={searching}>
+                        {searching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                      </Button>
+                    </div>
+                    
+                    <div className="max-h-60 overflow-y-auto space-y-2">
+                      {searchResults.length === 0 && searchQuery && !searching && (
+                        <p className="text-sm text-muted-foreground text-center py-4">
+                          No groups found
+                        </p>
+                      )}
+                      
+                      {searchResults.map((group) => (
+                        <div
+                          key={group.id}
+                          className="p-3 rounded-lg bg-secondary/30 border border-border hover:border-primary/30 transition-all"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <h4 className="font-medium">{group.name}</h4>
+                              <p className="text-xs text-muted-foreground">{group.member_count} members</p>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setPreviewGroup(group)}
+                              >
+                                <Eye className="w-4 h-4 mr-1" />
+                                Preview
+                              </Button>
+                              <Button
+                                size="sm"
+                                onClick={() => joinGroupById(group.id)}
+                                disabled={joining}
+                              >
+                                Join
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </TabsContent>
+                </Tabs>
               </DialogContent>
             </Dialog>
 
@@ -467,7 +648,7 @@ export default function Groups() {
                   <h3 className="font-semibold">{group.name}</h3>
                   <p className="text-sm text-muted-foreground">{group.member_count} members</p>
                   
-                  <div className="flex items-center gap-2 mt-3">
+                  <div className="flex items-center gap-2 mt-3 flex-wrap">
                     <Button
                       variant="ghost"
                       size="sm"
@@ -527,6 +708,50 @@ export default function Groups() {
           </div>
         )}
       </main>
+
+      {/* Group Preview Dialog */}
+      <Dialog open={!!previewGroup} onOpenChange={() => setPreviewGroup(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{previewGroup?.name}</DialogTitle>
+          </DialogHeader>
+          {previewGroup && (
+            <div className="space-y-4 pt-2">
+              {previewGroup.description && (
+                <div>
+                  <Label className="text-muted-foreground">Description</Label>
+                  <p className="mt-1">{previewGroup.description}</p>
+                </div>
+              )}
+              
+              <div>
+                <Label className="text-muted-foreground">Members</Label>
+                <p className="mt-1 font-medium">{previewGroup.member_count} members</p>
+              </div>
+              
+              <div>
+                <Label className="text-muted-foreground">Challenge Tasks</Label>
+                <div className="mt-2 space-y-2">
+                  {previewGroup.tasks.map((task, i) => (
+                    <div key={i} className="flex items-center justify-between p-2 rounded-lg bg-secondary/30">
+                      <span className="text-sm">{task.name}</span>
+                      <span className="text-xs text-primary font-medium">{task.weight} pts</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              <Button 
+                className="w-full" 
+                onClick={() => joinGroupById(previewGroup.id)}
+                disabled={joining}
+              >
+                {joining ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Join This Group'}
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Auto-open Task Config for newly created groups with custom tasks */}
       {newGroupId && (

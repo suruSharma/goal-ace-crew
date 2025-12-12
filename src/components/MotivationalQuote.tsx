@@ -3,30 +3,19 @@ import { motion } from 'framer-motion';
 import { Quote } from 'lucide-react';
 
 const quotes = [
-  // Original quotes
+  // Navy SEALs & Military
   { text: "The only easy day was yesterday.", author: "Navy SEALs" },
+  
+  // Leaders & Historical Figures
   { text: "Discipline is choosing between what you want now and what you want most.", author: "Abraham Lincoln" },
-  { text: "The pain you feel today will be the strength you feel tomorrow.", author: "Unknown" },
-  { text: "It is not about being the best. It is about being better than you were yesterday.", author: "Unknown" },
-  { text: "Your body can stand almost anything. It is your mind that you have to convince.", author: "Unknown" },
   { text: "The difference between try and triumph is just a little umph!", author: "Marvin Phillips" },
   { text: "Mental toughness is doing the right thing for the team when it is not the best thing for you.", author: "Bill Belichick" },
-  { text: "You do not have to be extreme, just consistent.", author: "Unknown" },
   { text: "Success is the sum of small efforts, repeated day in and day out.", author: "Robert Collier" },
-  { text: "The harder you work for something, the greater you will feel when you achieve it.", author: "Unknown" },
-  { text: "Do not limit your challenges. Challenge your limits.", author: "Unknown" },
   { text: "The only way to do great work is to love what you do.", author: "Steve Jobs" },
   { text: "Strength does not come from physical capacity. It comes from an indomitable will.", author: "Mahatma Gandhi" },
   { text: "The body achieves what the mind believes.", author: "Napoleon Hill" },
   { text: "Hard work beats talent when talent does not work hard.", author: "Tim Notke" },
-  { text: "You are only one workout away from a good mood.", author: "Unknown" },
   { text: "The struggle you are in today is developing the strength you need for tomorrow.", author: "Robert Tew" },
-  { text: "Be stronger than your excuses.", author: "Unknown" },
-  { text: "Champions are made when no one is watching.", author: "Unknown" },
-  { text: "Embrace the pain, endure the struggle, enjoy the victory.", author: "Unknown" },
-  { text: "You did not come this far to only come this far.", author: "Unknown" },
-  { text: "The only bad workout is the one that did not happen.", author: "Unknown" },
-  { text: "Push yourself because no one else is going to do it for you.", author: "Unknown" },
   { text: "Stay hard.", author: "David Goggins" },
   { text: "Who is gonna carry the boats?", author: "David Goggins" },
   
@@ -53,7 +42,6 @@ const quotes = [
   { text: "Pain is temporary. Quitting lasts forever.", author: "Lance Armstrong" },
   { text: "There may be people that have more talent than you, but there is no excuse for anyone to work harder.", author: "Derek Jeter" },
   { text: "Today I will do what others will not, so tomorrow I can accomplish what others cannot.", author: "Jerry Rice" },
-  { text: "Obsessed is just a word the lazy use to describe the dedicated.", author: "Unknown" },
   { text: "When you want to succeed as bad as you want to breathe, then you will be successful.", author: "Eric Thomas" },
   { text: "The successful warrior is the average man, with laser-like focus.", author: "Bruce Lee" },
   { text: "I fear not the man who has practiced 10,000 kicks once, but the man who has practiced one kick 10,000 times.", author: "Bruce Lee" },
@@ -62,7 +50,7 @@ const quotes = [
   
   // Entrepreneurs
   { text: "The way to get started is to quit talking and begin doing.", author: "Walt Disney" },
-  { text: "Your time is limited, do not waste it living someone else's life.", author: "Steve Jobs" },
+  { text: "Your time is limited, do not waste it living someone else is life.", author: "Steve Jobs" },
   { text: "Innovation distinguishes between a leader and a follower.", author: "Steve Jobs" },
   { text: "Stay hungry. Stay foolish.", author: "Steve Jobs" },
   { text: "Move fast and break things. Unless you are breaking stuff, you are not moving fast enough.", author: "Mark Zuckerberg" },
