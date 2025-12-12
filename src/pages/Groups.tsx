@@ -482,7 +482,14 @@ export default function Groups() {
         description: "You have left the group"
       });
 
-      fetchGroups();
+      // Clear selected group if it was the one we left
+      if (selectedGroup?.id === groupId) {
+        setSelectedGroup(null);
+        setLeaderboard([]);
+      }
+      
+      // Update the groups list
+      setMyGroups(prev => prev.filter(g => g.id !== groupId));
     } catch (error: any) {
       toast({
         title: "Error leaving group",
@@ -813,9 +820,10 @@ export default function Groups() {
                           e.stopPropagation();
                           copyInviteCode(group.invite_code);
                         }}
+                        title="Copy invite code to share with friends"
                       >
-                        <Copy className="w-4 h-4 mr-1" />
-                        {group.invite_code}
+                        <UserPlus className="w-4 h-4 mr-1" />
+                        Invite
                       </Button>
                     )}
                     {group.created_by === user!.id && group.status === 'draft' && (
