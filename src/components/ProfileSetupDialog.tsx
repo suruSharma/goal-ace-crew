@@ -47,6 +47,8 @@ export function ProfileSetupDialog({
   const [heightInches, setHeightInches] = useState('');
   const [heightCm, setHeightCm] = useState('');
   const [heightUnit, setHeightUnit] = useState<'ft' | 'cm'>('ft');
+  const [birthdateOpen, setBirthdateOpen] = useState(false);
+  const [goalDateOpen, setGoalDateOpen] = useState(false);
 
   const convertWeightToKg = (weight: number, unit: 'lbs' | 'kg'): number => {
     return unit === 'lbs' ? weight * 0.453592 : weight;
@@ -153,7 +155,7 @@ export function ProfileSetupDialog({
               <CalendarIcon className="w-4 h-4 text-muted-foreground" />
               Birth Date
             </Label>
-            <Popover>
+            <Popover open={birthdateOpen} onOpenChange={setBirthdateOpen}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
@@ -170,7 +172,10 @@ export function ProfileSetupDialog({
                 <Calendar
                   mode="single"
                   selected={birthdate}
-                  onSelect={setBirthdate}
+                  onSelect={(date) => {
+                    setBirthdate(date);
+                    setBirthdateOpen(false);
+                  }}
                   disabled={(date) => date > maxBirthdate}
                   captionLayout="dropdown"
                   startMonth={new Date(1940, 0)}
@@ -287,7 +292,7 @@ export function ProfileSetupDialog({
               <Target className="w-4 h-4 text-muted-foreground" />
               Goal Date
             </Label>
-            <Popover>
+            <Popover open={goalDateOpen} onOpenChange={setGoalDateOpen}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
@@ -304,7 +309,10 @@ export function ProfileSetupDialog({
                 <Calendar
                   mode="single"
                   selected={goalDate}
-                  onSelect={setGoalDate}
+                  onSelect={(date) => {
+                    setGoalDate(date);
+                    setGoalDateOpen(false);
+                  }}
                   disabled={(date) => date < today}
                   captionLayout="dropdown"
                   startMonth={today}
@@ -319,17 +327,27 @@ export function ProfileSetupDialog({
             </p>
           </div>
 
-          <Button
-            type="submit"
-            className="w-full"
-            disabled={saving}
-          >
-            {saving ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              "Save & Continue"
-            )}
-          </Button>
+          <div className="flex gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1"
+              onClick={() => onOpenChange(false)}
+            >
+              Skip for now
+            </Button>
+            <Button
+              type="submit"
+              className="flex-1"
+              disabled={saving}
+            >
+              {saving ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                "Save & Continue"
+              )}
+            </Button>
+          </div>
         </form>
       </DialogContent>
     </Dialog>
