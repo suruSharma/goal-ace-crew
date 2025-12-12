@@ -41,7 +41,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signInWithEmail = async (email: string, password: string): Promise<AuthResult> => {
+  const formatEmail = (username: string): string => {
+    // If already contains @, assume it's already an email
+    if (username.includes('@')) return username;
+    // Append domain suffix to make it a valid email for Supabase
+    return `${username}@75hard.app`;
+  };
+
+  const signInWithEmail = async (username: string, password: string): Promise<AuthResult> => {
+    const email = formatEmail(username);
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password
@@ -52,7 +60,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   };
 
-  const signUpWithEmail = async (email: string, password: string): Promise<AuthResult> => {
+  const signUpWithEmail = async (username: string, password: string): Promise<AuthResult> => {
+    const email = formatEmail(username);
     const redirectUrl = `${window.location.origin}/`;
     const { data, error } = await supabase.auth.signUp({
       email,
