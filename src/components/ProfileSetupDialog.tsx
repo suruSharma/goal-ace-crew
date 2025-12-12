@@ -1,11 +1,14 @@
 import { useState, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, User, Target, Calendar, Scale, Ruler } from 'lucide-react';
+import { Loader2, User, Target, CalendarIcon, Scale, Ruler } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import {
   Dialog,
   DialogContent,
@@ -35,10 +38,10 @@ export function ProfileSetupDialog({
 }: ProfileSetupDialogProps) {
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
-  const [birthdate, setBirthdate] = useState('');
+  const [birthdate, setBirthdate] = useState<Date | undefined>();
+  const [goalDate, setGoalDate] = useState<Date | undefined>();
   const [currentWeight, setCurrentWeight] = useState('');
   const [goalWeight, setGoalWeight] = useState('');
-  const [goalDate, setGoalDate] = useState('');
   const [weightUnit, setWeightUnit] = useState<'lbs' | 'kg'>('lbs');
   const [heightFeet, setHeightFeet] = useState('');
   const [heightInches, setHeightInches] = useState('');
@@ -98,10 +101,10 @@ export function ProfileSetupDialog({
       const { error } = await supabase
         .from('profiles')
         .update({
-          birthdate,
+          birthdate: format(birthdate, 'yyyy-MM-dd'),
           current_weight: currentWeightKg,
           goal_weight: goalWeightKg,
-          goal_date: goalDate,
+          goal_date: format(goalDate, 'yyyy-MM-dd'),
           height_cm: heightValue
         })
         .eq('id', userId);
@@ -133,10 +136,9 @@ export function ProfileSetupDialog({
     }
   };
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date();
   const maxBirthdate = new Date();
   maxBirthdate.setFullYear(maxBirthdate.getFullYear() - 13);
-  const maxBirthdateStr = maxBirthdate.toISOString().split('T')[0];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -149,30 +151,38 @@ export function ProfileSetupDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-5 pt-2">
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="space-y-2"
-          >
+          <div className="space-y-2">
             <Label className="flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-muted-foreground" />
+              <CalendarIcon className="w-4 h-4 text-muted-foreground" />
               Birth Date
             </Label>
-            <Input
-              type="date"
-              value={birthdate}
-              onChange={(e) => setBirthdate(e.target.value)}
-              max={maxBirthdateStr}
-              className="bg-secondary/50"
-            />
-          </motion.div>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal bg-secondary/50",
+                    !birthdate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {birthdate ? format(birthdate, "PPP") : "Pick your birth date"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={birthdate}
+                  onSelect={setBirthdate}
+                  disabled={(date) => date > maxBirthdate || date < new Date("1900-01-01")}
+                  initialFocus
+                  className={cn("p-3 pointer-events-auto")}
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="space-y-2"
-          >
+          <div className="space-y-2">
             <Label className="flex items-center gap-2">
               <Ruler className="w-4 h-4 text-muted-foreground" />
               Height
@@ -217,14 +227,9 @@ export function ProfileSetupDialog({
                 className="bg-secondary/50"
               />
             )}
-          </motion.div>
+          </div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.15 }}
-            className="space-y-2"
-          >
+          <div className="space-y-2">
             <Label className="flex items-center gap-2">
               <Scale className="w-4 h-4 text-muted-foreground" />
               Weight Unit
@@ -238,14 +243,9 @@ export function ProfileSetupDialog({
                 <SelectItem value="kg">Kilograms (kg)</SelectItem>
               </SelectContent>
             </Select>
-          </motion.div>
+          </div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="grid grid-cols-2 gap-4"
-          >
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Current Weight ({weightUnit})</Label>
               <Input
@@ -270,43 +270,51 @@ export function ProfileSetupDialog({
                 className="bg-secondary/50"
               />
             </div>
-          </motion.div>
+          </div>
 
           {calculatedBMI && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="p-3 rounded-lg bg-secondary/50 border border-border"
-            >
+            <div className="p-3 rounded-lg bg-secondary/50 border border-border">
               <Label className="text-xs text-muted-foreground">Current BMI (calculated)</Label>
               <div className="flex items-baseline gap-2">
                 <span className="text-2xl font-bold text-primary">{calculatedBMI}</span>
                 <span className="text-sm text-muted-foreground">({getBMICategory(calculatedBMI)})</span>
               </div>
-            </motion.div>
+            </div>
           )}
 
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="space-y-2"
-          >
+          <div className="space-y-2">
             <Label className="flex items-center gap-2">
               <Target className="w-4 h-4 text-muted-foreground" />
               Goal Date
             </Label>
-            <Input
-              type="date"
-              value={goalDate}
-              onChange={(e) => setGoalDate(e.target.value)}
-              min={today}
-              className="bg-secondary/50"
-            />
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal bg-secondary/50",
+                    !goalDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {goalDate ? format(goalDate, "PPP") : "Pick your goal date"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={goalDate}
+                  onSelect={setGoalDate}
+                  disabled={(date) => date < today}
+                  initialFocus
+                  className={cn("p-3 pointer-events-auto")}
+                />
+              </PopoverContent>
+            </Popover>
             <p className="text-xs text-muted-foreground">
               When do you want to reach your goal weight?
             </p>
-          </motion.div>
+          </div>
 
           <Button
             type="submit"
