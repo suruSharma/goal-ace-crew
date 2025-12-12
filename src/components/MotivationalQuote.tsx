@@ -50,7 +50,7 @@ export function MotivationalQuote({ userId }: MotivationalQuoteProps) {
         .from('favorite_quotes')
         .select('id')
         .eq('user_id', userId)
-        .eq('quote_text', quote.text)
+        .eq('quote_id', quote.id)
         .maybeSingle();
       setIsFavorite(!!data);
     };
@@ -68,7 +68,7 @@ export function MotivationalQuote({ userId }: MotivationalQuoteProps) {
           .from('favorite_quotes')
           .delete()
           .eq('user_id', userId)
-          .eq('quote_text', quote.text);
+          .eq('quote_id', quote.id);
         setIsFavorite(false);
         toast({ title: "Removed from favorites" });
       } else {
@@ -77,8 +77,7 @@ export function MotivationalQuote({ userId }: MotivationalQuoteProps) {
           .from('favorite_quotes')
           .insert({
             user_id: userId,
-            quote_text: quote.text,
-            quote_author: quote.author
+            quote_id: quote.id
           });
         setIsFavorite(true);
         toast({ title: "Added to favorites!" });

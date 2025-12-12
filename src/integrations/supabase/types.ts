@@ -163,25 +163,29 @@ export type Database = {
         Row: {
           created_at: string
           id: string
-          quote_author: string
-          quote_text: string
+          quote_id: string
           user_id: string
         }
         Insert: {
           created_at?: string
           id?: string
-          quote_author: string
-          quote_text: string
+          quote_id: string
           user_id: string
         }
         Update: {
           created_at?: string
           id?: string
-          quote_author?: string
-          quote_text?: string
+          quote_id?: string
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "favorite_quotes_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "favorite_quotes_user_id_fkey"
             columns: ["user_id"]
