@@ -1,7 +1,6 @@
-import { useTheme, ColorTheme } from '@/hooks/useTheme';
+import { useTheme, ColorTheme, ThemeMode } from '@/hooks/useTheme';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Moon, Sun, Palette } from 'lucide-react';
+import { Moon, Sun, Monitor, Palette } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const colorThemes: { id: ColorTheme; name: string; color: string }[] = [
@@ -11,25 +10,49 @@ const colorThemes: { id: ColorTheme; name: string; color: string }[] = [
   { id: 'blue', name: 'Blue', color: 'bg-blue-500' },
 ];
 
+const themeModes: { id: ThemeMode; name: string; icon: typeof Sun }[] = [
+  { id: 'light', name: 'Light', icon: Sun },
+  { id: 'dark', name: 'Dark', icon: Moon },
+  { id: 'system', name: 'System', icon: Monitor },
+];
+
 export function ThemeSettings() {
-  const { colorTheme, mode, setColorTheme, toggleMode } = useTheme();
+  const { colorTheme, mode, setColorTheme, setMode } = useTheme();
 
   return (
     <div className="space-y-6">
-      {/* Dark/Light Mode Toggle */}
-      <div className="flex items-center justify-between">
+      {/* Theme Mode Selection */}
+      <div className="space-y-3">
         <Label className="flex items-center gap-2">
           {mode === 'dark' ? (
             <Moon className="w-4 h-4 text-muted-foreground" />
-          ) : (
+          ) : mode === 'light' ? (
             <Sun className="w-4 h-4 text-muted-foreground" />
+          ) : (
+            <Monitor className="w-4 h-4 text-muted-foreground" />
           )}
-          Dark Mode
+          Mode
         </Label>
-        <Switch
-          checked={mode === 'dark'}
-          onCheckedChange={toggleMode}
-        />
+        <div className="grid grid-cols-3 gap-3">
+          {themeModes.map((themeMode) => {
+            const Icon = themeMode.icon;
+            return (
+              <button
+                key={themeMode.id}
+                onClick={() => setMode(themeMode.id)}
+                className={cn(
+                  "flex flex-col items-center gap-2 p-3 rounded-lg border transition-all",
+                  mode === themeMode.id
+                    ? "border-primary bg-primary/10"
+                    : "border-border hover:border-primary/50 bg-secondary/30"
+                )}
+              >
+                <Icon className="w-5 h-5" />
+                <span className="text-xs font-medium">{themeMode.name}</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Color Theme Selection */}
