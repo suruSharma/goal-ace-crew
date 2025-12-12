@@ -46,14 +46,12 @@ export default function Index() {
               The ultimate mental toughness program. Track your progress, compete with friends, and transform your life.
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button asChild size="lg" className="h-14 px-8 text-lg font-semibold">
-                <Link to="/auth">
-                  Start Challenge
-                  <ArrowRight className="w-5 h-5 ml-2" />
-                </Link>
-              </Button>
-            </div>
+            <Button asChild size="lg" className="h-14 px-8 text-lg font-semibold">
+              <Link to="/auth">
+                Get Started
+                <ArrowRight className="w-5 h-5 ml-2" />
+              </Link>
+            </Button>
           </motion.div>
 
           {/* Features */}
