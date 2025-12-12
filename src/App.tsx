@@ -11,6 +11,7 @@ import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
 import Groups from "./pages/Groups";
 import Achievements from "./pages/Achievements";
+import AchievementLeaderboard from "./pages/AchievementLeaderboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,7 @@ const App = () => (
               <Route path="/profile" element={<Profile />} />
               <Route path="/groups" element={<Groups />} />
               <Route path="/achievements" element={<Achievements />} />
+              <Route path="/achievements/leaderboard" element={<AchievementLeaderboard />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
