@@ -720,7 +720,7 @@ export default function Groups() {
             
             <div className="space-y-2">
               <Label>Challenge Duration</Label>
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-5 gap-2">
                 {[7, 30, 75, 90].map((days) => (
                   <button
                     key={days}
@@ -737,7 +737,28 @@ export default function Groups() {
                     <p className="text-xs text-muted-foreground">days</p>
                   </button>
                 ))}
+                <div className="relative">
+                  <Input
+                    type="number"
+                    min="1"
+                    max="365"
+                    value={![7, 30, 75, 90].includes(newGroupDays) ? newGroupDays : ''}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value);
+                      if (value > 0 && value <= 365) {
+                        setNewGroupDays(value);
+                      }
+                    }}
+                    placeholder="Custom"
+                    className={`h-full text-center text-sm ${
+                      ![7, 30, 75, 90].includes(newGroupDays)
+                        ? 'bg-primary/10 border-primary/30'
+                        : 'bg-card'
+                    }`}
+                  />
+                </div>
               </div>
+              <p className="text-xs text-muted-foreground">Select a preset or enter custom days (1-365)</p>
             </div>
             
             <div className="space-y-2">
