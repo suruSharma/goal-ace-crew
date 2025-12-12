@@ -472,11 +472,43 @@ export default function Profile() {
         .delete()
         .eq('user_id', user!.id);
 
+      // Delete cheers (both sent and received)
+      await supabase
+        .from('cheers')
+        .delete()
+        .eq('from_user_id', user!.id);
+      
+      await supabase
+        .from('cheers')
+        .delete()
+        .eq('to_user_id', user!.id);
+
+      // Delete favorite quotes
+      await supabase
+        .from('favorite_quotes')
+        .delete()
+        .eq('user_id', user!.id);
+
+      // Delete user's custom challenge templates
+      await supabase
+        .from('challenge_templates')
+        .delete()
+        .eq('created_by', user!.id)
+        .eq('is_default', false);
+
       // Delete weight history
       await supabase
         .from('weight_history')
         .delete()
         .eq('user_id', user!.id);
+
+      // Delete avatar from storage
+      if (profile.avatar_url) {
+        const avatarPath = `${user!.id}/`;
+        await supabase.storage
+          .from('avatars')
+          .remove([avatarPath]);
+      }
 
       // Delete profile
       await supabase

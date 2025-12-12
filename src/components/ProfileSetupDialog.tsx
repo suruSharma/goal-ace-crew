@@ -161,21 +161,24 @@ export function ProfileSetupDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-5 pt-2">
-          {/* Name - Required */}
+          {/* Username - Required */}
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
               <User className="w-4 h-4 text-muted-foreground" />
-              Your Name <span className="text-destructive">*</span>
+              Username <span className="text-destructive">*</span>
             </Label>
             <Input
               type="text"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              placeholder="Enter your name"
+              placeholder="Choose a username"
               className="bg-secondary/50"
-              maxLength={100}
+              maxLength={50}
               required
             />
+            <p className="text-xs text-muted-foreground">
+              This is how you'll appear to others
+            </p>
           </div>
 
           <div className="space-y-2">
