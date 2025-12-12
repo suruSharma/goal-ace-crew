@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { ArrowLeft, Save, Loader2, User, Scale, Target, CalendarIcon, Trash2, Ruler, Plus, Camera } from 'lucide-react';
 import { WeightProgressChart } from '@/components/WeightProgressChart';
+import { SimpleLoadingSkeleton } from '@/components/PageLoadingSkeleton';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -337,11 +338,7 @@ export default function Profile() {
   };
 
   if (authLoading || loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
+    return <SimpleLoadingSkeleton />;
   }
 
   return (

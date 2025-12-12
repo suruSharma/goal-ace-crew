@@ -15,6 +15,7 @@ import {
   Search, Eye, X, Send, Clock
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { SimpleLoadingSkeleton } from '@/components/PageLoadingSkeleton';
 import {
   Dialog,
   DialogContent,
@@ -555,11 +556,7 @@ export default function Groups() {
   };
 
   if (authLoading || loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
+    return <SimpleLoadingSkeleton />;
   }
 
   return (

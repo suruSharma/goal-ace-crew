@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { 
   Plus, Trash2, Loader2, Rocket, Zap, Clock, ListChecks
 } from 'lucide-react';
+import { TemplateListSkeleton } from '@/components/TaskCardSkeleton';
 import {
   Dialog,
   DialogContent,
@@ -340,9 +341,7 @@ export function ChallengeSetupDialog({
               <div className="flex-1 overflow-y-auto pr-2 space-y-3">
                 {useDefaultTasks ? (
                   loading ? (
-                    <div className="flex items-center justify-center py-8">
-                      <Loader2 className="w-6 h-6 animate-spin text-primary" />
-                    </div>
+                    <TemplateListSkeleton count={5} />
                   ) : (
                     defaultTemplates.map((task) => (
                       <div
