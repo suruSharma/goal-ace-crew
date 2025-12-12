@@ -36,7 +36,7 @@ const App = () => (
                 <Route path="/groups" element={<Groups />} />
                 <Route path="/groups/:groupId" element={<GroupDetails />} />
                 <Route path="/achievements" element={<Achievements />} />
-                <Route path="/achievements/leaderboard" element={<AchievementLeaderboard />} />
+                <Route path="/leaderboard" element={<AchievementLeaderboard />} />
                 <Route path="/challenge-history" element={<ChallengeHistory />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>

@@ -706,7 +706,7 @@ export default function Dashboard() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className={`bg-card rounded-2xl border border-border p-6 relative ${!challenge && myGroups.length === 0 ? 'md:col-span-3' : 'md:col-span-2'}`}
+            className={`bg-card rounded-2xl border border-border p-6 relative md:col-span-2`}
           >
             {challenge ? (
               <div className="flex flex-col md:flex-row items-center justify-between gap-6">
