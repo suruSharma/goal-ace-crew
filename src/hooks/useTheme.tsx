@@ -33,7 +33,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   
   const [colorTheme, setColorThemeState] = useState<ColorTheme>(() => {
     const stored = localStorage.getItem(STORAGE_KEY_COLOR);
-    return (stored as ColorTheme) || 'purple';
+    return (stored as ColorTheme) || 'blue';
   });
 
   const [mode, setModeState] = useState<ThemeMode>(() => {
