@@ -410,6 +410,7 @@ export default function GroupDetails() {
 
   const isOwner = group.created_by === user?.id;
 
+  return (
     <>
       <main className="container max-w-4xl mx-auto px-4 py-8 space-y-6">
         {/* Group Info Card */}

@@ -155,6 +155,7 @@ export default function Achievements() {
     return <PageLoadingSkeleton />;
   }
 
+  return (
     <>
       <main className="container max-w-4xl mx-auto px-4 py-8 space-y-8">
         {/* Category Filters */}

@@ -101,6 +101,7 @@ export default function AchievementLeaderboard() {
 
   const currentUserEntry = leaderboard.find(entry => entry.user_id === user?.id);
 
+  return (
     <>
       <main className="container max-w-4xl mx-auto px-4 py-8 space-y-6">
         {/* Time Period Filters */}
