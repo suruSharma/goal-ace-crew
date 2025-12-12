@@ -56,6 +56,11 @@ export default function Friends() {
     
     setSearching(true);
     try {
+      // Note: This query works because users can view profiles of:
+      // 1. Themselves (auth.uid() = id)
+      // 2. Friends (are_friends policy)
+      // 3. Group members (group members policy)
+      // For non-friends/non-group-members, the search may return limited results
       const { data, error } = await supabase
         .from('profiles')
         .select('id, full_name, avatar_url')

@@ -162,15 +162,17 @@ export default function Groups() {
 
     setSearching(true);
     try {
+      // Use the security definer function to get public groups without invite_code
       const { data: groups } = await supabase
-        .from('groups')
-        .select('id, name, description')
-        .ilike('name', `%${searchQuery}%`)
-        .eq('status', 'published')
-        .limit(10);
+        .rpc('get_public_groups');
 
       if (groups) {
-        const groupsWithDetails = await Promise.all(groups.map(async (g) => {
+        // Filter by search query client-side
+        const filteredGroups = groups.filter((g: any) => 
+          g.name.toLowerCase().includes(searchQuery.toLowerCase())
+        ).slice(0, 10);
+
+        const groupsWithDetails = await Promise.all(filteredGroups.map(async (g: any) => {
           const { count } = await supabase
             .from('group_members')
             .select('*', { count: 'exact', head: true })
@@ -193,9 +195,11 @@ export default function Groups() {
           }
 
           return {
-            ...g,
+            id: g.id,
+            name: g.name,
+            description: g.description || '',
             member_count: count || 0,
-            tasks: tasks.map(t => ({ name: t.name, weight: t.weight || 1 }))
+            tasks: tasks.map((t: any) => ({ name: t.name, weight: t.weight || 1 }))
           };
         }));
 

@@ -708,6 +708,18 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_public_groups: {
+        Args: never
+        Returns: {
+          created_at: string
+          created_by: string
+          description: string
+          id: string
+          name: string
+          status: string
+          total_days: number
+        }[]
+      }
       is_group_member: {
         Args: { _group_id: string; _user_id: string }
         Returns: boolean
