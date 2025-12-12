@@ -163,7 +163,7 @@ export default function Achievements() {
           icon={<Trophy className="w-6 h-6 text-primary" />}
         >
           <Button variant="outline" size="sm" asChild>
-            <Link to="/achievements/leaderboard" className="gap-2">
+            <Link to="/leaderboard" className="gap-2">
               <Users className="w-4 h-4" />
               Leaderboard
             </Link>

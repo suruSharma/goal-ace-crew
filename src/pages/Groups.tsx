@@ -767,26 +767,27 @@ export default function Groups() {
                     <p className="text-xs text-muted-foreground">days</p>
                   </button>
                 ))}
-                <div className="relative">
-                  <Input
-                    type="number"
-                    min="1"
-                    max="365"
-                    value={![7, 30, 75, 90].includes(newGroupDays) ? newGroupDays : ''}
-                    onChange={(e) => {
-                      const value = parseInt(e.target.value);
+                <button
+                  type="button"
+                  onClick={() => {
+                    const custom = prompt('Enter custom days (1-365):', '100');
+                    if (custom) {
+                      const value = parseInt(custom);
                       if (value > 0 && value <= 365) {
                         setNewGroupDays(value);
                       }
-                    }}
-                    placeholder="Custom"
-                    className={`h-full text-center text-sm ${
-                      ![7, 30, 75, 90].includes(newGroupDays)
-                        ? 'bg-primary/10 border-primary/30'
-                        : 'bg-card'
-                    }`}
-                  />
-                </div>
+                    }
+                  }}
+                  className={`p-2 rounded-lg border text-center transition-all text-sm ${
+                    ![7, 30, 75, 90].includes(newGroupDays)
+                      ? 'bg-primary/10 border-primary/30'
+                      : 'bg-card border-border hover:border-primary/30'
+                  }`}
+                >
+                  <Clock className="w-4 h-4 mx-auto mb-1 text-primary" />
+                  <span className="font-medium">{![7, 30, 75, 90].includes(newGroupDays) ? newGroupDays : 'Other'}</span>
+                  <p className="text-xs text-muted-foreground">days</p>
+                </button>
               </div>
               <p className="text-xs text-muted-foreground">Select a preset or enter custom days (1-365)</p>
             </div>

@@ -89,6 +89,7 @@ export default function Profile() {
   });
   const [weightHistory, setWeightHistory] = useState<WeightEntry[]>([]);
   const [newWeight, setNewWeight] = useState('');
+  const [weightDate, setWeightDate] = useState<Date>(new Date());
   const [addingWeight, setAddingWeight] = useState(false);
   const [weightDialogOpen, setWeightDialogOpen] = useState(false);
   const [myGroups, setMyGroups] = useState<{ id: string; name: string; status: string; memberCount: number }[]>([]);
@@ -276,27 +277,33 @@ export default function Profile() {
     setAddingWeight(true);
     try {
       const weightKg = parseFloat(newWeight);
+      const recordedAt = weightDate.toISOString();
       
-      // Add to weight history
+      // Add to weight history with the selected date
       const { error: historyError } = await supabase
         .from('weight_history')
         .insert({
           user_id: user!.id,
-          weight_kg: weightKg
+          weight_kg: weightKg,
+          recorded_at: recordedAt
         });
 
       if (historyError) throw historyError;
 
-      // Update current weight in profile
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({ current_weight: weightKg })
-        .eq('id', user!.id);
+      // Only update current weight if the date is today
+      const isToday = weightDate.toDateString() === new Date().toDateString();
+      if (isToday) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({ current_weight: weightKg })
+          .eq('id', user!.id);
 
-      if (profileError) throw profileError;
+        if (profileError) throw profileError;
+        setProfile(p => ({ ...p, current_weight: weightKg }));
+      }
 
-      setProfile(p => ({ ...p, current_weight: weightKg }));
       setNewWeight('');
+      setWeightDate(new Date());
       setWeightDialogOpen(false);
       await fetchWeightHistory();
 
@@ -604,11 +611,25 @@ export default function Profile() {
           .remove([avatarPath]);
       }
 
-      // Delete profile
-      await supabase
-        .from('profiles')
-        .delete()
-        .eq('id', user!.id);
+      // Delete the user completely (including auth.users) via edge function
+      const { data: session } = await supabase.auth.getSession();
+      if (session?.session?.access_token) {
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-user`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${session.session.access_token}`,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+        
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Failed to delete user');
+        }
+      }
 
       toast({
         title: "Profile deleted",
@@ -869,13 +890,40 @@ export default function Profile() {
                 </DialogHeader>
                 <div className="space-y-4 pt-4">
                   <div className="space-y-2">
+                    <Label>Date</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal bg-secondary/50",
+                            !weightDate && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {weightDate ? format(weightDate, "PPP") : <span>Pick a date</span>}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={weightDate}
+                          onSelect={(date) => date && setWeightDate(date)}
+                          disabled={(date) => date > new Date()}
+                          initialFocus
+                          className={cn("p-3 pointer-events-auto")}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  <div className="space-y-2">
                     <Label>Weight (kg)</Label>
                     <Input
                       type="number"
                       step="0.1"
                       value={newWeight}
                       onChange={(e) => setNewWeight(e.target.value)}
-                      placeholder="Enter your current weight"
+                      placeholder="Enter your weight"
                       className="bg-secondary/50"
                     />
                   </div>

@@ -11,7 +11,7 @@ import { PageLoadingSkeleton } from '@/components/PageLoadingSkeleton';
 import { PageHeader } from '@/components/PageHeader';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
-  Trophy, Medal, Crown, 
+  Medal, Crown, Trophy, Award,
   Calendar, CalendarDays, History,
   Users, User
 } from 'lucide-react';
@@ -195,7 +195,7 @@ export default function AchievementLeaderboard() {
 
         // Sort by total points descending
         groupsWithStats.sort((a, b) => b.total_points - a.total_points);
-        setGroupLeaderboard(groupsWithStats.filter(g => g.total_points > 0));
+        setGroupLeaderboard(groupsWithStats);
       }
     } catch (error) {
       console.error('Error fetching group leaderboard:', error);
@@ -215,7 +215,7 @@ export default function AchievementLeaderboard() {
       <main className="container max-w-4xl mx-auto px-4 py-8 space-y-6">
         <PageHeader 
           title="Leaderboard" 
-          icon={<Trophy className="w-6 h-6 text-primary" />}
+          icon={<Award className="w-6 h-6 text-primary" />}
         />
 
         {/* Leaderboard Type Tabs */}

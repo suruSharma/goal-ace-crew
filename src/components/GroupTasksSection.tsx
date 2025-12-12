@@ -454,9 +454,15 @@ export function GroupTasksSection({ userId, onTaskToggle }: GroupTasksSectionPro
   }
 
   // Calculate summary stats
-  const activeGroupChallenges = groups.filter(g => g.challengeId);
+  const activeGroupChallenges = groups.filter(g => g.challengeId && !g.isCompleted);
   const totalGroupPoints = groups.reduce((sum, g) => sum + g.totalPoints, 0);
   const completedGroups = groups.filter(g => g.isCompleted).length;
+  const ongoingGroups = groups.filter(g => !g.isCompleted);
+
+  // If all groups are completed, don't show this section on dashboard
+  if (ongoingGroups.length === 0) {
+    return null;
+  }
 
   return (
     <>
@@ -517,7 +523,9 @@ export function GroupTasksSection({ userId, onTaskToggle }: GroupTasksSectionPro
         )}
 
         <div className="space-y-3">
-          {groups.map((group) => {
+          {groups
+            .filter(g => !g.isCompleted) // Hide completed/aged groups from dashboard
+            .map((group) => {
             const completedTasks = group.tasks.filter(t => t.completed).length;
             const totalTasks = group.tasks.length;
             const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
