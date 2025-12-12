@@ -30,6 +30,7 @@ interface TaskConfigDialogProps {
   isGroupCreator?: boolean;
   onSave?: () => void;
   trigger?: React.ReactNode;
+  defaultOpen?: boolean;
 }
 
 export function TaskConfigDialog({ 
@@ -37,13 +38,20 @@ export function TaskConfigDialog({
   userId, 
   isGroupCreator = false,
   onSave,
-  trigger 
+  trigger,
+  defaultOpen = false
 }: TaskConfigDialogProps) {
   const { toast } = useToast();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [templates, setTemplates] = useState<Template[]>([]);
+
+  useEffect(() => {
+    if (defaultOpen) {
+      setOpen(true);
+    }
+  }, [defaultOpen]);
 
   useEffect(() => {
     if (open) {

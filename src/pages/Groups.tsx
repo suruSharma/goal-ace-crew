@@ -11,7 +11,7 @@ import { TaskConfigDialog } from '@/components/TaskConfigDialog';
 import { useToast } from '@/hooks/use-toast';
 import { 
   ArrowLeft, Plus, Users, Copy, LogOut, 
-  Loader2, UserPlus, Settings2
+  Loader2, UserPlus, Settings2, Zap, ListChecks
 } from 'lucide-react';
 import {
   Dialog,
@@ -47,11 +47,13 @@ export default function Groups() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [newGroupName, setNewGroupName] = useState('');
   const [newGroupDesc, setNewGroupDesc] = useState('');
+  const [useDefaultTasks, setUseDefaultTasks] = useState(true);
   const [joinCode, setJoinCode] = useState('');
   const [creating, setCreating] = useState(false);
   const [joining, setJoining] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [joinDialogOpen, setJoinDialogOpen] = useState(false);
+  const [newGroupId, setNewGroupId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -203,6 +205,13 @@ export default function Groups() {
       setCreateDialogOpen(false);
       setNewGroupName('');
       setNewGroupDesc('');
+      
+      // If custom tasks selected, open task config for the new group
+      if (!useDefaultTasks) {
+        setNewGroupId(group.id);
+      }
+      
+      setUseDefaultTasks(true);
       fetchGroups();
     } catch (error: any) {
       toast({
@@ -351,7 +360,7 @@ export default function Groups() {
                   Create
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="max-w-lg">
                 <DialogHeader>
                   <DialogTitle>Create a Group</DialogTitle>
                 </DialogHeader>
@@ -374,6 +383,44 @@ export default function Groups() {
                       className="bg-secondary/50"
                     />
                   </div>
+                  
+                  <div className="space-y-2">
+                    <Label>Challenge Tasks</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setUseDefaultTasks(true)}
+                        className={`p-3 rounded-lg border text-left transition-all text-sm ${
+                          useDefaultTasks
+                            ? 'bg-primary/10 border-primary/30'
+                            : 'bg-card border-border hover:border-primary/30'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 mb-1">
+                          <Zap className="w-4 h-4 text-primary" />
+                          <span className="font-medium">Default 75 Hard</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">Original challenge tasks</p>
+                      </button>
+                      
+                      <button
+                        type="button"
+                        onClick={() => setUseDefaultTasks(false)}
+                        className={`p-3 rounded-lg border text-left transition-all text-sm ${
+                          !useDefaultTasks
+                            ? 'bg-primary/10 border-primary/30'
+                            : 'bg-card border-border hover:border-primary/30'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 mb-1">
+                          <ListChecks className="w-4 h-4 text-primary" />
+                          <span className="font-medium">Custom Tasks</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">Configure after creation</p>
+                      </button>
+                    </div>
+                  </div>
+                  
                   <Button onClick={createGroup} className="w-full" disabled={creating}>
                     {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Create Group'}
                   </Button>
@@ -480,6 +527,20 @@ export default function Groups() {
           </div>
         )}
       </main>
+
+      {/* Auto-open Task Config for newly created groups with custom tasks */}
+      {newGroupId && (
+        <TaskConfigDialog
+          groupId={newGroupId}
+          userId={user!.id}
+          isGroupCreator={true}
+          defaultOpen={true}
+          onSave={() => {
+            setNewGroupId(null);
+            fetchGroups();
+          }}
+        />
+      )}
     </div>
   );
 }

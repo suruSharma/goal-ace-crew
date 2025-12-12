@@ -222,6 +222,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           start_date: string
+          total_days: number
           user_id: string
         }
         Insert: {
@@ -231,6 +232,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           start_date?: string
+          total_days?: number
           user_id: string
         }
         Update: {
@@ -240,6 +242,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           start_date?: string
+          total_days?: number
           user_id?: string
         }
         Relationships: [
