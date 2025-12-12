@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, User, Target, CalendarIcon, Scale, Ruler, Mail } from 'lucide-react';
+import { Loader2, User, Target, CalendarIcon, Scale, Ruler } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   Dialog,
@@ -27,7 +27,6 @@ interface ProfileSetupDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   userId: string;
-  username: string;
   onComplete: () => void;
 }
 
@@ -35,13 +34,11 @@ export function ProfileSetupDialog({
   open, 
   onOpenChange, 
   userId,
-  username,
   onComplete 
 }: ProfileSetupDialogProps) {
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
   const [fullName, setFullName] = useState('');
-  const [recoveryEmail, setRecoveryEmail] = useState('');
   const [birthdate, setBirthdate] = useState<Date | undefined>();
   const [goalDate, setGoalDate] = useState<Date | undefined>();
   const [currentWeight, setCurrentWeight] = useState('');
@@ -98,16 +95,6 @@ export function ProfileSetupDialog({
       return;
     }
 
-    // Email is required
-    if (!recoveryEmail.trim() || !recoveryEmail.includes('@')) {
-      toast({
-        title: "Valid email required",
-        description: "Please enter a valid email address for password recovery.",
-        variant: "destructive"
-      });
-      return;
-    }
-
     setSaving(true);
     try {
       const heightValue = convertHeightToCm();
@@ -117,7 +104,6 @@ export function ProfileSetupDialog({
         .from('profiles')
         .update({
           full_name: fullName.trim(),
-          recovery_email: recoveryEmail.trim(),
           birthdate: birthdate ? format(birthdate, 'yyyy-MM-dd') : null,
           current_weight: currentWeightKg,
           goal_weight: goalWeightKg,
@@ -175,23 +161,6 @@ export function ProfileSetupDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-5 pt-2">
-          {/* Username - Readonly from login */}
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2">
-              <User className="w-4 h-4 text-muted-foreground" />
-              Username
-            </Label>
-            <Input
-              type="text"
-              value={username}
-              readOnly
-              className="bg-secondary/30 text-muted-foreground cursor-not-allowed"
-            />
-            <p className="text-xs text-muted-foreground">
-              Your login username (cannot be changed)
-            </p>
-          </div>
-
           {/* Display Name - Required */}
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
@@ -207,25 +176,6 @@ export function ProfileSetupDialog({
               maxLength={50}
               required
             />
-          </div>
-
-          {/* Recovery Email - Required */}
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2">
-              <Mail className="w-4 h-4 text-muted-foreground" />
-              Recovery Email <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              type="email"
-              value={recoveryEmail}
-              onChange={(e) => setRecoveryEmail(e.target.value)}
-              placeholder="your@email.com"
-              className="bg-secondary/50"
-              required
-            />
-            <p className="text-xs text-muted-foreground">
-              Used for password recovery if you forget your password
-            </p>
           </div>
 
           <div className="space-y-2">
@@ -408,7 +358,7 @@ export function ProfileSetupDialog({
           <Button
             type="submit"
             className="w-full"
-            disabled={saving || !fullName.trim() || !recoveryEmail.trim()}
+            disabled={saving || !fullName.trim()}
           >
             {saving ? (
               <Loader2 className="w-4 h-4 animate-spin" />
