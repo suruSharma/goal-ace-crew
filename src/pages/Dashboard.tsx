@@ -711,16 +711,23 @@ export default function Dashboard() {
                 </div>
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center py-6 text-center">
-                <Rocket className="w-10 h-10 text-primary mb-3" />
-                <h3 className="font-display font-semibold text-lg mb-2">No Active Challenge</h3>
-                <p className="text-muted-foreground mb-4 text-sm">Start a personal challenge or join a group</p>
-                <div className="flex flex-wrap gap-3 justify-center mb-4">
-                  <Button onClick={() => setShowSetup(true)} className="gap-2">
+              <div className={`flex flex-col items-center justify-center text-center ${myGroups.length === 0 ? 'py-10' : 'py-6'}`}>
+                <div className={`${myGroups.length === 0 ? 'w-16 h-16' : 'w-10 h-10'} bg-primary/10 rounded-full flex items-center justify-center mb-4`}>
+                  <Rocket className={`${myGroups.length === 0 ? 'w-8 h-8' : 'w-5 h-5'} text-primary`} />
+                </div>
+                <h3 className={`font-display font-semibold mb-2 ${myGroups.length === 0 ? 'text-xl' : 'text-lg'}`}>No Active Challenge</h3>
+                <p className={`text-muted-foreground mb-4 ${myGroups.length === 0 ? 'text-base max-w-sm' : 'text-sm'}`}>
+                  {myGroups.length === 0 
+                    ? 'Begin your transformation journey today. Start a personal challenge or join a group to stay accountable.'
+                    : 'Start a personal challenge or join a group'
+                  }
+                </p>
+                <div className={`flex flex-wrap gap-3 justify-center ${myGroups.length === 0 ? 'mb-6' : 'mb-4'}`}>
+                  <Button onClick={() => setShowSetup(true)} className="gap-2" size={myGroups.length === 0 ? 'lg' : 'default'}>
                     <Flame className="w-4 h-4" />
                     Start Challenge
                   </Button>
-                  <Button variant="outline" asChild className="gap-2">
+                  <Button variant="outline" asChild className="gap-2" size={myGroups.length === 0 ? 'lg' : 'default'}>
                     <Link to="/groups">
                       <Users className="w-4 h-4" />
                       Browse Groups
@@ -729,7 +736,7 @@ export default function Dashboard() {
                 </div>
                 
                 {/* Quick Join with Invite Code */}
-                <div className="w-full max-w-xs pt-4 border-t border-border">
+                <div className={`w-full pt-4 border-t border-border ${myGroups.length === 0 ? 'max-w-sm' : 'max-w-xs'}`}>
                   <p className="text-xs text-muted-foreground mb-2">Have an invite code?</p>
                   <div className="flex gap-2">
                     <Input
