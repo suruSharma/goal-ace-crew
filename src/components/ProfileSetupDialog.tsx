@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, User, Target, CalendarIcon, Scale, Ruler } from 'lucide-react';
+import { Loader2, User, Target, CalendarIcon, Scale, Ruler, Mail } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   Dialog,
@@ -27,6 +27,7 @@ interface ProfileSetupDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   userId: string;
+  username: string;
   onComplete: () => void;
 }
 
@@ -34,11 +35,13 @@ export function ProfileSetupDialog({
   open, 
   onOpenChange, 
   userId,
+  username,
   onComplete 
 }: ProfileSetupDialogProps) {
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
   const [fullName, setFullName] = useState('');
+  const [recoveryEmail, setRecoveryEmail] = useState('');
   const [birthdate, setBirthdate] = useState<Date | undefined>();
   const [goalDate, setGoalDate] = useState<Date | undefined>();
   const [currentWeight, setCurrentWeight] = useState('');
@@ -89,7 +92,17 @@ export function ProfileSetupDialog({
     if (!fullName.trim()) {
       toast({
         title: "Name required",
-        description: "Please enter your name to continue.",
+        description: "Please enter your display name to continue.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Email is required
+    if (!recoveryEmail.trim() || !recoveryEmail.includes('@')) {
+      toast({
+        title: "Valid email required",
+        description: "Please enter a valid email address for password recovery.",
         variant: "destructive"
       });
       return;
@@ -104,6 +117,7 @@ export function ProfileSetupDialog({
         .from('profiles')
         .update({
           full_name: fullName.trim(),
+          recovery_email: recoveryEmail.trim(),
           birthdate: birthdate ? format(birthdate, 'yyyy-MM-dd') : null,
           current_weight: currentWeightKg,
           goal_weight: goalWeightKg,
@@ -161,23 +175,56 @@ export function ProfileSetupDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-5 pt-2">
-          {/* Username - Required */}
+          {/* Username - Readonly from login */}
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
               <User className="w-4 h-4 text-muted-foreground" />
-              Username <span className="text-destructive">*</span>
+              Username
+            </Label>
+            <Input
+              type="text"
+              value={username}
+              readOnly
+              className="bg-secondary/30 text-muted-foreground cursor-not-allowed"
+            />
+            <p className="text-xs text-muted-foreground">
+              Your login username (cannot be changed)
+            </p>
+          </div>
+
+          {/* Display Name - Required */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <User className="w-4 h-4 text-muted-foreground" />
+              Display Name <span className="text-destructive">*</span>
             </Label>
             <Input
               type="text"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              placeholder="Choose a username"
+              placeholder="How you want to be called"
               className="bg-secondary/50"
               maxLength={50}
               required
             />
+          </div>
+
+          {/* Recovery Email - Required */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <Mail className="w-4 h-4 text-muted-foreground" />
+              Recovery Email <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              type="email"
+              value={recoveryEmail}
+              onChange={(e) => setRecoveryEmail(e.target.value)}
+              placeholder="your@email.com"
+              className="bg-secondary/50"
+              required
+            />
             <p className="text-xs text-muted-foreground">
-              This is how you'll appear to others
+              Used for password recovery if you forget your password
             </p>
           </div>
 
@@ -361,7 +408,7 @@ export function ProfileSetupDialog({
           <Button
             type="submit"
             className="w-full"
-            disabled={saving || !fullName.trim()}
+            disabled={saving || !fullName.trim() || !recoveryEmail.trim()}
           >
             {saving ? (
               <Loader2 className="w-4 h-4 animate-spin" />
