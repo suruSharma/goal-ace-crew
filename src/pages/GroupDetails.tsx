@@ -171,6 +171,24 @@ export default function GroupDetails() {
 
   const fetchLeaderboard = async () => {
     try {
+      // First, get the group's configured task templates
+      const { data: groupTemplates } = await supabase
+        .from('challenges')
+        .select('id')
+        .eq('group_id', groupId);
+
+      // If group has no custom templates, use defaults
+      let templateIds: string[] = [];
+      if (groupTemplates && groupTemplates.length > 0) {
+        templateIds = groupTemplates.map(t => t.id);
+      } else {
+        const { data: defaultTemplates } = await supabase
+          .from('challenges')
+          .select('id')
+          .eq('is_default', true);
+        templateIds = defaultTemplates?.map(t => t.id) || [];
+      }
+
       const { data: members } = await supabase
         .from('group_members')
         .select(`
@@ -186,20 +204,24 @@ export default function GroupDetails() {
       if (members) {
         const entries: LeaderboardEntry[] = await Promise.all(
           members.map(async (m: any) => {
+            // Get user's challenge that is linked to this group
             const { data: challenge } = await supabase
               .from('user_challenges')
               .select('id')
               .eq('user_id', m.user_id)
+              .eq('group_id', groupId)
               .eq('is_active', true)
               .maybeSingle();
 
             let points = 0;
-            if (challenge) {
+            if (challenge && templateIds.length > 0) {
+              // Only count tasks that use the group's templates
               const { data: completedTasks } = await supabase
                 .from('daily_tasks')
-                .select(`completed, challenges (weight)`)
+                .select(`completed, template_id, challenges (weight)`)
                 .eq('user_challenge_id', challenge.id)
-                .eq('completed', true);
+                .eq('completed', true)
+                .in('template_id', templateIds);
 
               if (completedTasks) {
                 points = completedTasks.reduce((sum: number, t: any) => 
