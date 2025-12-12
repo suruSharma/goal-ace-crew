@@ -14,6 +14,7 @@ import {
   Loader2, UserPlus, Settings2, Zap, ListChecks,
   Search, Eye, X, Send, Clock
 } from 'lucide-react';
+import { AppHeader } from '@/components/AppHeader';
 import { Badge } from '@/components/ui/badge';
 import { SimpleLoadingSkeleton } from '@/components/PageLoadingSkeleton';
 import {
@@ -589,211 +590,202 @@ export default function Groups() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b border-border">
-        <div className="container max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" asChild>
-              <Link to="/dashboard">
-                <ArrowLeft className="w-5 h-5" />
-              </Link>
-            </Button>
-            <h1 className="font-display font-bold text-xl">Groups</h1>
-          </div>
-          
-          <div className="flex gap-2">
-            <Dialog open={joinDialogOpen} onOpenChange={setJoinDialogOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <UserPlus className="w-4 h-4 mr-2" />
-                  Join
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-lg">
-                <DialogHeader>
-                  <DialogTitle>Join a Group</DialogTitle>
-                </DialogHeader>
-                
-                <Tabs defaultValue="code" className="mt-4">
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="code">Invite Code</TabsTrigger>
-                    <TabsTrigger value="search">Search Groups</TabsTrigger>
-                  </TabsList>
-                  
-                  <TabsContent value="code" className="space-y-4 pt-4">
-                    <div className="space-y-2">
-                      <Label>Invite Code</Label>
-                      <Input
-                        value={joinCode}
-                        onChange={(e) => setJoinCode(e.target.value)}
-                        placeholder="Enter invite code"
-                        className="bg-secondary/50"
-                      />
-                    </div>
-                    <Button onClick={joinGroup} className="w-full" disabled={joining}>
-                      {joining ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Join Group'}
-                    </Button>
-                  </TabsContent>
-                  
-                  <TabsContent value="search" className="space-y-4 pt-4">
-                    <div className="flex gap-2">
-                      <Input
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="Search by group name..."
-                        className="bg-secondary/50"
-                        onKeyDown={(e) => e.key === 'Enter' && searchGroups()}
-                      />
-                      <Button onClick={searchGroups} disabled={searching}>
-                        {searching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-                      </Button>
-                    </div>
-                    
-                    <div className="max-h-60 overflow-y-auto space-y-2">
-                      {searchResults.length === 0 && searchQuery && !searching && (
-                        <p className="text-sm text-muted-foreground text-center py-4">
-                          No groups found
-                        </p>
-                      )}
-                      
-                      {searchResults.map((group) => (
-                        <div
-                          key={group.id}
-                          className="p-3 rounded-lg bg-secondary/30 border border-border hover:border-primary/30 transition-all"
-                        >
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <h4 className="font-medium">{group.name}</h4>
-                              <p className="text-xs text-muted-foreground">{group.member_count} members</p>
-                            </div>
-                            <div className="flex gap-2">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setPreviewGroup(group)}
-                              >
-                                <Eye className="w-4 h-4 mr-1" />
-                                Preview
-                              </Button>
-                              <Button
-                                size="sm"
-                                onClick={() => joinGroupById(group.id)}
-                                disabled={joining}
-                              >
-                                Join
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </TabsContent>
-                </Tabs>
-              </DialogContent>
-            </Dialog>
-
-            <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-              <DialogTrigger asChild>
-                <Button size="sm">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Create
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-lg">
-                <DialogHeader>
-                  <DialogTitle>Create a Group</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4 pt-4">
-                  <div className="space-y-2">
-                    <Label>Group Name</Label>
-                    <Input
-                      value={newGroupName}
-                      onChange={(e) => setNewGroupName(e.target.value)}
-                      placeholder="My 75 Hard Squad"
-                      className="bg-secondary/50"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Description (optional)</Label>
-                    <Input
-                      value={newGroupDesc}
-                      onChange={(e) => setNewGroupDesc(e.target.value)}
-                      placeholder="We're crushing it together!"
-                      className="bg-secondary/50"
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label>Challenge Duration</Label>
-                    <div className="grid grid-cols-4 gap-2">
-                      {[7, 30, 75, 90].map((days) => (
-                        <button
-                          key={days}
-                          type="button"
-                          onClick={() => setNewGroupDays(days)}
-                          className={`p-2 rounded-lg border text-center transition-all text-sm ${
-                            newGroupDays === days
-                              ? 'bg-primary/10 border-primary/30'
-                              : 'bg-card border-border hover:border-primary/30'
-                          }`}
-                        >
-                          <Clock className="w-4 h-4 mx-auto mb-1 text-primary" />
-                          <span className="font-medium">{days}</span>
-                          <p className="text-xs text-muted-foreground">days</p>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label>Challenge Tasks</Label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setUseDefaultTasks(true)}
-                        className={`p-3 rounded-lg border text-left transition-all text-sm ${
-                          useDefaultTasks
-                            ? 'bg-primary/10 border-primary/30'
-                            : 'bg-card border-border hover:border-primary/30'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2 mb-1">
-                          <Zap className="w-4 h-4 text-primary" />
-                          <span className="font-medium">Default 75 Hard</span>
-                        </div>
-                        <p className="text-xs text-muted-foreground">Original challenge tasks</p>
-                      </button>
-                      
-                      <button
-                        type="button"
-                        onClick={() => setUseDefaultTasks(false)}
-                        className={`p-3 rounded-lg border text-left transition-all text-sm ${
-                          !useDefaultTasks
-                            ? 'bg-primary/10 border-primary/30'
-                            : 'bg-card border-border hover:border-primary/30'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2 mb-1">
-                          <ListChecks className="w-4 h-4 text-primary" />
-                          <span className="font-medium">Custom Tasks</span>
-                        </div>
-                        <p className="text-xs text-muted-foreground">Configure after creation</p>
-                      </button>
-                    </div>
-                  </div>
-                  
-                  <p className="text-xs text-muted-foreground">
-                    Your group will be created as a draft. You can configure tasks and publish it when ready.
-                  </p>
-                  
-                  <Button onClick={createGroup} className="w-full" disabled={creating}>
-                    {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Create Group'}
-                  </Button>
-                </div>
-              </DialogContent>
-            </Dialog>
-          </div>
+      <AppHeader 
+        title="Groups" 
+        icon={<Users className="w-5 h-5 text-primary" />}
+      >
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => setJoinDialogOpen(true)}>
+            <UserPlus className="w-4 h-4 mr-2" />
+            Join
+          </Button>
+          <Button size="sm" onClick={() => setCreateDialogOpen(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            Create
+          </Button>
         </div>
-      </header>
+      </AppHeader>
+
+      {/* Join Group Dialog */}
+      <Dialog open={joinDialogOpen} onOpenChange={setJoinDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Join a Group</DialogTitle>
+          </DialogHeader>
+          
+          <Tabs defaultValue="code" className="mt-4">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="code">Invite Code</TabsTrigger>
+              <TabsTrigger value="search">Search Groups</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="code" className="space-y-4 pt-4">
+              <div className="space-y-2">
+                <Label>Invite Code</Label>
+                <Input
+                  value={joinCode}
+                  onChange={(e) => setJoinCode(e.target.value)}
+                  placeholder="Enter invite code"
+                  className="bg-secondary/50"
+                />
+              </div>
+              <Button onClick={joinGroup} className="w-full" disabled={joining}>
+                {joining ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Join Group'}
+              </Button>
+            </TabsContent>
+            
+            <TabsContent value="search" className="space-y-4 pt-4">
+              <div className="flex gap-2">
+                <Input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search by group name..."
+                  className="bg-secondary/50"
+                  onKeyDown={(e) => e.key === 'Enter' && searchGroups()}
+                />
+                <Button onClick={searchGroups} disabled={searching}>
+                  {searching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                </Button>
+              </div>
+              
+              <div className="max-h-60 overflow-y-auto space-y-2">
+                {searchResults.length === 0 && searchQuery && !searching && (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    No groups found
+                  </p>
+                )}
+                
+                {searchResults.map((group) => (
+                  <div
+                    key={group.id}
+                    className="p-3 rounded-lg bg-secondary/30 border border-border hover:border-primary/30 transition-all"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-medium">{group.name}</h4>
+                        <p className="text-xs text-muted-foreground">{group.member_count} members</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setPreviewGroup(group)}
+                        >
+                          <Eye className="w-4 h-4 mr-1" />
+                          Preview
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => joinGroupById(group.id)}
+                          disabled={joining}
+                        >
+                          Join
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </TabsContent>
+          </Tabs>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Group Dialog */}
+      <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Create a Group</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <div className="space-y-2">
+              <Label>Group Name</Label>
+              <Input
+                value={newGroupName}
+                onChange={(e) => setNewGroupName(e.target.value)}
+                placeholder="My 75 Hard Squad"
+                className="bg-secondary/50"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Description (optional)</Label>
+              <Input
+                value={newGroupDesc}
+                onChange={(e) => setNewGroupDesc(e.target.value)}
+                placeholder="We're crushing it together!"
+                className="bg-secondary/50"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label>Challenge Duration</Label>
+              <div className="grid grid-cols-4 gap-2">
+                {[7, 30, 75, 90].map((days) => (
+                  <button
+                    key={days}
+                    type="button"
+                    onClick={() => setNewGroupDays(days)}
+                    className={`p-2 rounded-lg border text-center transition-all text-sm ${
+                      newGroupDays === days
+                        ? 'bg-primary/10 border-primary/30'
+                        : 'bg-card border-border hover:border-primary/30'
+                    }`}
+                  >
+                    <Clock className="w-4 h-4 mx-auto mb-1 text-primary" />
+                    <span className="font-medium">{days}</span>
+                    <p className="text-xs text-muted-foreground">days</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label>Challenge Tasks</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setUseDefaultTasks(true)}
+                  className={`p-3 rounded-lg border text-left transition-all text-sm ${
+                    useDefaultTasks
+                      ? 'bg-primary/10 border-primary/30'
+                      : 'bg-card border-border hover:border-primary/30'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <Zap className="w-4 h-4 text-primary" />
+                    <span className="font-medium">Default 75 Hard</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Original challenge tasks</p>
+                </button>
+                
+                <button
+                  type="button"
+                  onClick={() => setUseDefaultTasks(false)}
+                  className={`p-3 rounded-lg border text-left transition-all text-sm ${
+                    !useDefaultTasks
+                      ? 'bg-primary/10 border-primary/30'
+                      : 'bg-card border-border hover:border-primary/30'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <ListChecks className="w-4 h-4 text-primary" />
+                    <span className="font-medium">Custom Tasks</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Configure after creation</p>
+                </button>
+              </div>
+            </div>
+            
+            <p className="text-xs text-muted-foreground">
+              Your group will be created as a draft. You can configure tasks and publish it when ready.
+            </p>
+            
+            <Button onClick={createGroup} className="w-full" disabled={creating}>
+              {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Create Group'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <main className="container max-w-4xl mx-auto px-4 py-8">
         {myGroups.length === 0 ? (

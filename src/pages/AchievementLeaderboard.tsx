@@ -8,8 +8,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { PageLoadingSkeleton } from '@/components/PageLoadingSkeleton';
+import { AppHeader } from '@/components/AppHeader';
 import { 
-  ArrowLeft, Trophy, Medal, Crown, 
+  Trophy, Medal, Crown, 
   Calendar, CalendarDays, History
 } from 'lucide-react';
 
@@ -102,22 +103,10 @@ export default function AchievementLeaderboard() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border">
-        <div className="container max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" asChild>
-              <Link to="/achievements">
-                <ArrowLeft className="w-5 h-5" />
-              </Link>
-            </Button>
-            <div className="flex items-center gap-2">
-              <Trophy className="w-6 h-6 text-primary" />
-              <span className="font-display font-bold text-xl">Leaderboard</span>
-            </div>
-          </div>
-        </div>
-      </header>
+      <AppHeader 
+        title="Leaderboard" 
+        icon={<Trophy className="w-6 h-6 text-primary" />}
+      />
 
       <main className="container max-w-4xl mx-auto px-4 py-8 space-y-6">
         {/* Time Period Filters */}
