@@ -105,18 +105,8 @@ export default function ChallengeHistoryPage() {
   const activeChallenges = challenges.filter(c => c.isActive && !c.isCompleted);
   const abandonedChallenges = challenges.filter(c => !c.isActive && !c.isCompleted);
 
-  return (
-    <div className="min-h-screen bg-background">
-      <AppHeader title="Challenge History" icon={<Clock className="w-5 h-5 text-primary" />} />
-      
+    <>
       <main className="container mx-auto px-4 py-8 max-w-4xl">
-        {/* Back Button */}
-        <Button variant="ghost" asChild className="mb-6">
-          <Link to="/dashboard">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Dashboard
-          </Link>
-        </Button>
 
         {/* Page Header */}
         <motion.div
@@ -234,7 +224,7 @@ export default function ChallengeHistoryPage() {
           </motion.div>
         )}
       </main>
-    </div>
+    </>
   );
 }
 

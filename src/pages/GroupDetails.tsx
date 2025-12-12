@@ -410,13 +410,7 @@ export default function GroupDetails() {
 
   const isOwner = group.created_by === user?.id;
 
-  return (
-    <div className="min-h-screen bg-background">
-      <AppHeader
-        title={group.name}
-        icon={<Users className="w-5 h-5 text-primary" />}
-      />
-
+    <>
       <main className="container max-w-4xl mx-auto px-4 py-8 space-y-6">
         {/* Group Info Card */}
         <div className="bg-card rounded-2xl border border-border p-6">
@@ -627,6 +621,6 @@ export default function GroupDetails() {
           </div>
         </div>
       </main>
-    </div>
+    </>
   );
 }

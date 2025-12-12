@@ -614,23 +614,26 @@ export default function Groups() {
     return <SimpleLoadingSkeleton />;
   }
 
-  return (
-    <div className="min-h-screen bg-background">
-      <AppHeader 
-        title="Groups" 
-        icon={<Users className="w-5 h-5 text-primary" />}
-      >
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => setJoinDialogOpen(true)}>
-            <UserPlus className="w-4 h-4 mr-2" />
-            Join
-          </Button>
-          <Button size="sm" onClick={() => setCreateDialogOpen(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Create
-          </Button>
+    <>
+      {/* Page Header with Actions */}
+      <div className="container max-w-4xl mx-auto px-4 pt-6 pb-2">
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-display font-bold flex items-center gap-2">
+            <Users className="w-6 h-6 text-primary" />
+            Groups
+          </h1>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => setJoinDialogOpen(true)}>
+              <UserPlus className="w-4 h-4 mr-2" />
+              Join
+            </Button>
+            <Button size="sm" onClick={() => setCreateDialogOpen(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Create
+            </Button>
+          </div>
         </div>
-      </AppHeader>
+      </div>
 
       {/* Join Group Dialog */}
       <Dialog open={joinDialogOpen} onOpenChange={setJoinDialogOpen}>
@@ -1027,6 +1030,6 @@ export default function Groups() {
           trigger={<span className="hidden" />}
         />
       )}
-    </div>
+    </>
   );
 }
