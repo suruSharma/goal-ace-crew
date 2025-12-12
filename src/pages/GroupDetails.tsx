@@ -14,8 +14,9 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import {
   Users, Clock, User, ListChecks, MessageSquare,
-  Send, Loader2, Copy, LogOut, Trash2, Crown
+  Send, Loader2, Copy, LogOut, Trash2, Crown, Settings2
 } from 'lucide-react';
+import { TaskConfigDialog } from '@/components/TaskConfigDialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -85,6 +86,7 @@ export default function GroupDetails() {
   const [newComment, setNewComment] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
   const [leaving, setLeaving] = useState(false);
+  const [publishing, setPublishing] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -400,6 +402,33 @@ export default function GroupDetails() {
     }
   };
 
+  const publishGroup = async () => {
+    setPublishing(true);
+    try {
+      const { error } = await supabase
+        .from('groups')
+        .update({ status: 'published' })
+        .eq('id', groupId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Group published!",
+        description: "Others can now find and join your group."
+      });
+      
+      fetchGroupDetails();
+    } catch (error: any) {
+      toast({
+        title: "Error publishing group",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setPublishing(false);
+    }
+  };
+
   if (authLoading || loading) {
     return <SimpleLoadingSkeleton />;
   }
@@ -427,12 +456,38 @@ export default function GroupDetails() {
                 <p className="text-muted-foreground">{group.description}</p>
               )}
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               {group.status === 'published' && (
                 <Button variant="outline" size="sm" onClick={copyInviteCode}>
                   <Copy className="w-4 h-4 mr-1" />
                   Invite
                 </Button>
+              )}
+              {isOwner && group.status === 'draft' && (
+                <>
+                  <TaskConfigDialog
+                    groupId={group.id}
+                    userId={user!.id}
+                    isGroupCreator={true}
+                    onSave={() => fetchTasks()}
+                    trigger={
+                      <Button variant="outline" size="sm">
+                        <Settings2 className="w-4 h-4 mr-1" />
+                        Configure Tasks
+                      </Button>
+                    }
+                  />
+                  <Button size="sm" onClick={publishGroup} disabled={publishing}>
+                    {publishing ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <>
+                        <Send className="w-4 h-4 mr-1" />
+                        Publish
+                      </>
+                    )}
+                  </Button>
+                </>
               )}
               {!isOwner && (
                 <AlertDialog>
