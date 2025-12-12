@@ -48,24 +48,25 @@ export default function Feed() {
         </div>
       </PageHeader>
 
-      <div className="mt-6 space-y-4">
-        {friends.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <UserPlus className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
-              <h3 className="font-semibold text-lg mb-2">No friends yet</h3>
-              <p className="text-muted-foreground mb-4">
-                Add friends to see their activity in your feed!
-              </p>
-              <Button asChild>
-                <Link to="/friends">
-                  <UserPlus className="w-4 h-4 mr-2" />
-                  Find Friends
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
-        ) : posts.length === 0 ? (
+      {friends.length === 0 && (
+        <Card className="mb-4">
+          <CardContent className="py-6 text-center">
+            <UserPlus className="w-8 h-8 mx-auto text-muted-foreground/50 mb-2" />
+            <p className="text-sm text-muted-foreground mb-3">
+              Add friends to see their activity!
+            </p>
+            <Button size="sm" asChild>
+              <Link to="/friends">
+                <UserPlus className="w-4 h-4 mr-2" />
+                Find Friends
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="space-y-4">
+        {posts.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
               <Rss className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
