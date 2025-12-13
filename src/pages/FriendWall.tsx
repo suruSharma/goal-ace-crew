@@ -179,28 +179,57 @@ export default function FriendWall() {
   const handlePostMessage = async () => {
     if (!newMessage.trim() || !user || !friendId) return;
 
+    const messageText = newMessage.trim();
     setSubmitting(true);
+    setNewMessage('');
+
+    // Optimistic update - add the new post immediately
+    const tempId = `temp-${Date.now()}`;
+    const newPost: FeedPost = {
+      id: tempId,
+      user_id: user.id,
+      post_type: 'wall_message',
+      content: { to_user_id: friendId },
+      message: messageText,
+      created_at: new Date().toISOString(),
+      user: {
+        id: user.id,
+        full_name: 'You',
+        avatar_url: null
+      },
+      reactions: [],
+      comments: [],
+      commentCount: 0
+    };
+    setPosts(prev => [newPost, ...prev]);
+
     try {
-      // Create a wall post - user_id is the author, to_user_id in content is the wall owner
-      const { error } = await (supabase
+      const { data, error } = await (supabase
         .from('feed_posts' as any)
         .insert({
           user_id: user.id,
           post_type: 'wall_message',
           content: { to_user_id: friendId },
-          message: newMessage.trim()
-        }) as any);
+          message: messageText
+        })
+        .select('id')
+        .single() as any);
 
       if (error) throw error;
+
+      // Update the temp post with real ID
+      setPosts(prev => prev.map(p => 
+        p.id === tempId ? { ...p, id: data.id } : p
+      ));
 
       toast({
         title: "Message posted!",
         description: `Your message has been posted to ${friendProfile?.full_name}'s wall.`
       });
-
-      setNewMessage('');
-      fetchFriendData();
     } catch (error: any) {
+      // Remove optimistic post on error
+      setPosts(prev => prev.filter(p => p.id !== tempId));
+      setNewMessage(messageText);
       toast({
         title: "Error posting message",
         description: error.message,
@@ -214,56 +243,157 @@ export default function FriendWall() {
   const addReaction = async (postId: string, emoji: string) => {
     if (!user) return;
 
-    try {
-      const { error } = await (supabase
-        .from('feed_reactions' as any)
-        .insert({
-          post_id: postId,
-          user_id: user.id,
-          emoji
-        }) as any);
+    // Check if user already reacted with this emoji
+    const post = posts.find(p => p.id === postId);
+    const existingReaction = post?.reactions.find(r => r.emoji === emoji && r.hasReacted);
 
-      if (error) {
-        if (error.code === '23505') {
-          // Already reacted, remove it
-          await (supabase
-            .from('feed_reactions' as any)
-            .delete()
-            .eq('post_id', postId)
-            .eq('user_id', user.id)
-            .eq('emoji', emoji) as any);
-        } else {
-          throw error;
-        }
+    if (existingReaction) {
+      // Optimistic remove
+      setPosts(prev => prev.map(p => {
+        if (p.id !== postId) return p;
+        return {
+          ...p,
+          reactions: p.reactions
+            .map(r => r.emoji === emoji ? { ...r, count: r.count - 1, hasReacted: false } : r)
+            .filter(r => r.count > 0)
+        };
+      }));
+
+      try {
+        await (supabase
+          .from('feed_reactions' as any)
+          .delete()
+          .eq('post_id', postId)
+          .eq('user_id', user.id)
+          .eq('emoji', emoji) as any);
+      } catch (error: any) {
+        // Revert on error
+        setPosts(prev => prev.map(p => {
+          if (p.id !== postId) return p;
+          const existing = p.reactions.find(r => r.emoji === emoji);
+          if (existing) {
+            return {
+              ...p,
+              reactions: p.reactions.map(r => 
+                r.emoji === emoji ? { ...r, count: r.count + 1, hasReacted: true } : r
+              )
+            };
+          }
+          return {
+            ...p,
+            reactions: [...p.reactions, { emoji, count: 1, hasReacted: true }]
+          };
+        }));
       }
+    } else {
+      // Optimistic add
+      setPosts(prev => prev.map(p => {
+        if (p.id !== postId) return p;
+        const existing = p.reactions.find(r => r.emoji === emoji);
+        if (existing) {
+          return {
+            ...p,
+            reactions: p.reactions.map(r => 
+              r.emoji === emoji ? { ...r, count: r.count + 1, hasReacted: true } : r
+            )
+          };
+        }
+        return {
+          ...p,
+          reactions: [...p.reactions, { emoji, count: 1, hasReacted: true }]
+        };
+      }));
 
-      fetchFriendData();
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive"
-      });
+      try {
+        const { error } = await (supabase
+          .from('feed_reactions' as any)
+          .insert({
+            post_id: postId,
+            user_id: user.id,
+            emoji
+          }) as any);
+
+        if (error && error.code !== '23505') throw error;
+      } catch (error: any) {
+        // Revert on error
+        setPosts(prev => prev.map(p => {
+          if (p.id !== postId) return p;
+          return {
+            ...p,
+            reactions: p.reactions
+              .map(r => r.emoji === emoji ? { ...r, count: r.count - 1, hasReacted: false } : r)
+              .filter(r => r.count > 0)
+          };
+        }));
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive"
+        });
+      }
     }
   };
 
   const addComment = async (postId: string, content: string) => {
     if (!user || !content.trim()) return;
 
+    const commentText = content.trim();
+    const tempId = `temp-comment-${Date.now()}`;
+
+    // Optimistic update
+    const newComment = {
+      id: tempId,
+      user_id: user.id,
+      content: commentText,
+      created_at: new Date().toISOString(),
+      user: {
+        full_name: 'You',
+        avatar_url: null
+      }
+    };
+
+    setPosts(prev => prev.map(p => {
+      if (p.id !== postId) return p;
+      return {
+        ...p,
+        comments: [...p.comments.slice(-2), newComment],
+        commentCount: p.commentCount + 1
+      };
+    }));
+
     try {
-      const { error } = await (supabase
+      const { data, error } = await (supabase
         .from('feed_comments' as any)
         .insert({
           post_id: postId,
           user_id: user.id,
-          content: content.trim()
-        }) as any);
+          content: commentText
+        })
+        .select('id')
+        .single() as any);
 
       if (error) throw error;
 
+      // Update with real ID
+      setPosts(prev => prev.map(p => {
+        if (p.id !== postId) return p;
+        return {
+          ...p,
+          comments: p.comments.map(c => c.id === tempId ? { ...c, id: data.id } : c)
+        };
+      }));
+
       toast({ title: "Comment added" });
-      fetchFriendData();
     } catch (error: any) {
+      // Revert on error
+      setPosts(prev => prev.map(p => {
+        if (p.id !== postId) return p;
+        return {
+          ...p,
+          comments: p.comments.filter(c => c.id !== tempId),
+          commentCount: p.commentCount - 1
+        };
+      }));
       toast({
         title: "Error adding comment",
         description: error.message,
@@ -273,6 +403,20 @@ export default function FriendWall() {
   };
 
   const deleteComment = async (postId: string, commentId: string) => {
+    // Store for potential revert
+    const post = posts.find(p => p.id === postId);
+    const comment = post?.comments.find(c => c.id === commentId);
+
+    // Optimistic delete
+    setPosts(prev => prev.map(p => {
+      if (p.id !== postId) return p;
+      return {
+        ...p,
+        comments: p.comments.filter(c => c.id !== commentId),
+        commentCount: Math.max(0, p.commentCount - 1)
+      };
+    }));
+
     try {
       const { error } = await (supabase
         .from('feed_comments' as any)
@@ -282,8 +426,18 @@ export default function FriendWall() {
       if (error) throw error;
 
       toast({ title: "Comment deleted" });
-      fetchFriendData();
     } catch (error: any) {
+      // Revert on error
+      if (comment) {
+        setPosts(prev => prev.map(p => {
+          if (p.id !== postId) return p;
+          return {
+            ...p,
+            comments: [...p.comments, comment],
+            commentCount: p.commentCount + 1
+          };
+        }));
+      }
       toast({
         title: "Error deleting comment",
         description: error.message,
@@ -293,6 +447,12 @@ export default function FriendWall() {
   };
 
   const deletePost = async (postId: string) => {
+    // Store for potential revert
+    const postToDelete = posts.find(p => p.id === postId);
+
+    // Optimistic delete
+    setPosts(prev => prev.filter(p => p.id !== postId));
+
     try {
       const { error } = await (supabase
         .from('feed_posts' as any)
@@ -302,8 +462,13 @@ export default function FriendWall() {
       if (error) throw error;
 
       toast({ title: "Message deleted" });
-      fetchFriendData();
     } catch (error: any) {
+      // Revert on error
+      if (postToDelete) {
+        setPosts(prev => [postToDelete, ...prev].sort((a, b) => 
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        ));
+      }
       toast({
         title: "Error deleting message",
         description: error.message,
