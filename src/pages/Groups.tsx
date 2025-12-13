@@ -306,17 +306,21 @@ export default function Groups() {
 
       const { data: members } = await supabase
         .from('group_members')
-        .select(`
-          user_id,
-          profiles (
-            id,
-            full_name,
-            avatar_url
-          )
-        `)
+        .select('user_id')
         .eq('group_id', groupId);
 
-      if (members) {
+      if (members && members.length > 0) {
+        const memberUserIds = members.map((m: any) => m.user_id);
+        
+        // Fetch profile display info using secure function
+        const { data: profiles } = await supabase
+          .rpc('get_profiles_display_info', { user_ids: memberUserIds });
+
+        const profileMap: Record<string, any> = {};
+        (profiles || []).forEach((p: any) => {
+          profileMap[p.id] = p;
+        });
+
         const entries: LeaderboardEntry[] = await Promise.all(
           members.map(async (m: any) => {
             // Get user's challenge that is linked to this group
@@ -365,10 +369,11 @@ export default function Groups() {
               .map(([emoji, count]) => ({ emoji, count }))
               .sort((a, b) => b.count - a.count);
 
+            const profile = profileMap[m.user_id];
             return {
               id: m.user_id,
-              name: m.profiles?.full_name || 'Unknown',
-              avatar: m.profiles?.avatar_url || undefined,
+              name: profile?.full_name || 'Unknown',
+              avatar: profile?.avatar_url || undefined,
               points,
               isCurrentUser: m.user_id === user!.id,
               cheers

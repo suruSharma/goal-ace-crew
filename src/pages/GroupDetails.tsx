@@ -118,12 +118,11 @@ export default function GroupDetails() {
         return;
       }
 
-      // Get owner info
-      const { data: ownerProfile } = await supabase
-        .from('profiles')
-        .select('full_name, avatar_url')
-        .eq('id', groupData.created_by)
-        .maybeSingle();
+      // Get owner info using secure function
+      const { data: ownerProfiles } = await supabase
+        .rpc('get_profiles_display_info', { user_ids: [groupData.created_by] });
+      
+      const ownerProfile = ownerProfiles?.[0];
 
       // Get member count
       const { count } = await supabase
@@ -194,17 +193,21 @@ export default function GroupDetails() {
 
       const { data: members } = await supabase
         .from('group_members')
-        .select(`
-          user_id,
-          profiles (
-            id,
-            full_name,
-            avatar_url
-          )
-        `)
+        .select('user_id')
         .eq('group_id', groupId);
 
-      if (members) {
+      if (members && members.length > 0) {
+        const memberUserIds = members.map((m: any) => m.user_id);
+        
+        // Fetch profile display info using secure function
+        const { data: profiles } = await supabase
+          .rpc('get_profiles_display_info', { user_ids: memberUserIds });
+
+        const profileMap: Record<string, any> = {};
+        (profiles || []).forEach((p: any) => {
+          profileMap[p.id] = p;
+        });
+
         const entries: LeaderboardEntry[] = await Promise.all(
           members.map(async (m: any) => {
             // Get user's challenge that is linked to this group
@@ -251,10 +254,11 @@ export default function GroupDetails() {
               .map(([emoji, count]) => ({ emoji, count }))
               .sort((a, b) => b.count - a.count);
 
+            const profile = profileMap[m.user_id];
             return {
               id: m.user_id,
-              name: m.profiles?.full_name || 'Unknown',
-              avatar: m.profiles?.avatar_url || undefined,
+              name: profile?.full_name || 'Unknown',
+              avatar: profile?.avatar_url || undefined,
               points,
               isCurrentUser: m.user_id === user!.id,
               cheers
@@ -274,30 +278,36 @@ export default function GroupDetails() {
     try {
       const { data, error } = await supabase
         .from('group_comments')
-        .select(`
-          id,
-          content,
-          created_at,
-          user_id,
-          profiles (
-            full_name,
-            avatar_url
-          )
-        `)
+        .select('id, content, created_at, user_id')
         .eq('group_id', groupId)
         .order('created_at', { ascending: false })
         .limit(50);
 
       if (error) throw error;
 
-      setComments((data || []).map((c: any) => ({
-        id: c.id,
-        content: c.content,
-        created_at: c.created_at,
-        user_id: c.user_id,
-        user_name: c.profiles?.full_name || 'Unknown',
-        user_avatar: c.profiles?.avatar_url || null
-      })));
+      if (data && data.length > 0) {
+        const userIds = [...new Set(data.map((c: any) => c.user_id))];
+        
+        // Fetch profile display info using secure function
+        const { data: profiles } = await supabase
+          .rpc('get_profiles_display_info', { user_ids: userIds });
+
+        const profileMap: Record<string, any> = {};
+        (profiles || []).forEach((p: any) => {
+          profileMap[p.id] = p;
+        });
+
+        setComments(data.map((c: any) => ({
+          id: c.id,
+          content: c.content,
+          created_at: c.created_at,
+          user_id: c.user_id,
+          user_name: profileMap[c.user_id]?.full_name || 'Unknown',
+          user_avatar: profileMap[c.user_id]?.avatar_url || null
+        })));
+      } else {
+        setComments([]);
+      }
     } catch (error) {
       console.error('Error fetching comments:', error);
     }

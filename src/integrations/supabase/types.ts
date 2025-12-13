@@ -708,6 +708,22 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_profile_display_info: {
+        Args: { user_id: string }
+        Returns: {
+          avatar_url: string
+          full_name: string
+          id: string
+        }[]
+      }
+      get_profiles_display_info: {
+        Args: { user_ids: string[] }
+        Returns: {
+          avatar_url: string
+          full_name: string
+          id: string
+        }[]
+      }
       get_public_groups: {
         Args: never
         Returns: {

@@ -33,62 +33,51 @@ export function useFriends(userId: string | undefined) {
       // Get accepted friendships where user is requester
       const { data: asRequester } = await (supabase
         .from('friendships' as any)
-        .select(`
-          id,
-          addressee_id,
-          profiles!friendships_addressee_id_fkey (
-            id,
-            full_name,
-            avatar_url
-          )
-        `)
+        .select('id, addressee_id')
         .eq('requester_id', userId)
         .eq('status', 'accepted') as any);
 
       // Get accepted friendships where user is addressee
       const { data: asAddressee } = await (supabase
         .from('friendships' as any)
-        .select(`
-          id,
-          requester_id,
-          profiles!friendships_requester_id_fkey (
-            id,
-            full_name,
-            avatar_url
-          )
-        `)
+        .select('id, requester_id')
         .eq('addressee_id', userId)
         .eq('status', 'accepted') as any);
 
-      const friendsList: Friend[] = [];
+      // Collect all friend user IDs
+      const friendUserIds: string[] = [];
+      const friendshipMap: Record<string, string> = {};
       
       if (asRequester) {
         asRequester.forEach((f: any) => {
-          if (f.profiles) {
-            friendsList.push({
-              id: f.profiles.id,
-              full_name: f.profiles.full_name || 'Unknown',
-              avatar_url: f.profiles.avatar_url,
-              friendshipId: f.id
-            });
-          }
+          friendUserIds.push(f.addressee_id);
+          friendshipMap[f.addressee_id] = f.id;
         });
       }
       
       if (asAddressee) {
         asAddressee.forEach((f: any) => {
-          if (f.profiles) {
-            friendsList.push({
-              id: f.profiles.id,
-              full_name: f.profiles.full_name || 'Unknown',
-              avatar_url: f.profiles.avatar_url,
-              friendshipId: f.id
-            });
-          }
+          friendUserIds.push(f.requester_id);
+          friendshipMap[f.requester_id] = f.id;
         });
       }
 
-      setFriends(friendsList);
+      // Fetch profile display info using secure function
+      if (friendUserIds.length > 0) {
+        const { data: profiles } = await supabase
+          .rpc('get_profiles_display_info', { user_ids: friendUserIds });
+
+        const friendsList: Friend[] = (profiles || []).map((p: any) => ({
+          id: p.id,
+          full_name: p.full_name || 'Unknown',
+          avatar_url: p.avatar_url,
+          friendshipId: friendshipMap[p.id]
+        }));
+
+        setFriends(friendsList);
+      } else {
+        setFriends([]);
+      }
     } catch (error) {
       console.error('Error fetching friends:', error);
     }
@@ -100,29 +89,34 @@ export function useFriends(userId: string | undefined) {
     try {
       const { data } = await (supabase
         .from('friendships' as any)
-        .select(`
-          id,
-          created_at,
-          profiles!friendships_requester_id_fkey (
-            id,
-            full_name,
-            avatar_url
-          )
-        `)
+        .select('id, created_at, requester_id')
         .eq('addressee_id', userId)
         .eq('status', 'pending') as any);
 
-      if (data) {
+      if (data && data.length > 0) {
+        const requesterIds = data.map((r: any) => r.requester_id);
+        
+        // Fetch profile display info using secure function
+        const { data: profiles } = await supabase
+          .rpc('get_profiles_display_info', { user_ids: requesterIds });
+
+        const profileMap: Record<string, any> = {};
+        (profiles || []).forEach((p: any) => {
+          profileMap[p.id] = p;
+        });
+
         const requests: FriendRequest[] = data.map((r: any) => ({
           id: r.id,
           requester: {
-            id: r.profiles?.id || '',
-            full_name: r.profiles?.full_name || 'Unknown',
-            avatar_url: r.profiles?.avatar_url
+            id: r.requester_id,
+            full_name: profileMap[r.requester_id]?.full_name || 'Unknown',
+            avatar_url: profileMap[r.requester_id]?.avatar_url
           },
           created_at: r.created_at
         }));
         setPendingRequests(requests);
+      } else {
+        setPendingRequests([]);
       }
     } catch (error) {
       console.error('Error fetching pending requests:', error);
