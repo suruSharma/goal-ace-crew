@@ -169,7 +169,6 @@ export default function Friends() {
                         </Avatar>
                         <div className="flex-1">
                           <p className="font-semibold">{friend.full_name}</p>
-                          <p className="text-sm text-muted-foreground">Click to view wall</p>
                         </div>
                         <Button
                           variant="outline"
