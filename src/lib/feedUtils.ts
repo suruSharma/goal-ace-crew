@@ -38,10 +38,6 @@ export async function createFeedPost(
 }
 
 // Helper functions for specific post types
-export async function postTaskCompletion(userId: string, taskCount: number, points: number) {
-  await createFeedPost(userId, 'task_completion', { taskCount, points });
-}
-
 export async function postAchievementUnlocked(userId: string, name: string, description: string, points: number) {
   await createFeedPost(userId, 'achievement', { name, description, points });
 }
