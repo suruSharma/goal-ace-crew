@@ -16,8 +16,6 @@ import Achievements from "./pages/Achievements";
 import AchievementLeaderboard from "./pages/AchievementLeaderboard";
 import ChallengeHistory from "./pages/ChallengeHistory";
 import Friends from "./pages/Friends";
-import Feed from "./pages/Feed";
-import FriendWall from "./pages/FriendWall";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -42,8 +40,6 @@ const App = () => (
                 <Route path="/leaderboard" element={<AchievementLeaderboard />} />
                 <Route path="/challenge-history" element={<ChallengeHistory />} />
                 <Route path="/friends" element={<Friends />} />
-                <Route path="/friends/:friendId" element={<FriendWall />} />
-                <Route path="/feed" element={<Feed />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </AppLayout>
