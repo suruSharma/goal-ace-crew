@@ -64,7 +64,7 @@ export default function FriendWall() {
           created_at
         `)
         .or(`user_id.eq.${friendId},and(post_type.eq.wall_message,content->>to_user_id.eq.${friendId})`)
-        .in('post_type', ['achievement', 'challenge_completed', 'streak_milestone', 'wall_message'])
+        .in('post_type', ['achievement', 'challenge_started', 'challenge_completed', 'streak_milestone', 'wall_message'])
         .order('created_at', { ascending: false })
         .limit(50) as any);
 
