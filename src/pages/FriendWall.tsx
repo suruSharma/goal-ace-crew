@@ -51,7 +51,8 @@ export default function FriendWall() {
         setFriendProfile(profiles[0]);
       }
 
-      // Fetch posts on friend's wall (posts BY the friend OR wall messages TO the friend)
+      // Fetch posts on friend's wall (achievements BY friend OR wall messages TO the friend)
+      // Filter out task_completion posts - only show achievements and wall messages
       const { data: postsData } = await (supabase
         .from('feed_posts' as any)
         .select(`
@@ -63,6 +64,7 @@ export default function FriendWall() {
           created_at
         `)
         .or(`user_id.eq.${friendId},and(post_type.eq.wall_message,content->>to_user_id.eq.${friendId})`)
+        .in('post_type', ['achievement', 'challenge_completed', 'streak_milestone', 'wall_message'])
         .order('created_at', { ascending: false })
         .limit(50) as any);
 
@@ -539,7 +541,7 @@ export default function FriendWall() {
             <Input
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
-              placeholder={`Write something to ${friendProfile?.full_name}...`}
+              placeholder={`✨ Write something nice for ${friendProfile?.full_name}...`}
               className="flex-1"
               onKeyDown={(e) => e.key === 'Enter' && handlePostMessage()}
             />
