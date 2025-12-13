@@ -51,7 +51,7 @@ export default function FriendWall() {
         setFriendProfile(profiles[0]);
       }
 
-      // Fetch friend's posts
+      // Fetch posts on friend's wall (posts BY the friend OR wall messages TO the friend)
       const { data: postsData } = await (supabase
         .from('feed_posts' as any)
         .select(`
@@ -62,12 +62,23 @@ export default function FriendWall() {
           message,
           created_at
         `)
-        .eq('user_id', friendId)
+        .or(`user_id.eq.${friendId},and(post_type.eq.wall_message,content->>to_user_id.eq.${friendId})`)
         .order('created_at', { ascending: false })
         .limit(50) as any);
 
       if (postsData && postsData.length > 0) {
         const postIds = postsData.map((p: any) => p.id);
+        const postUserIds = [...new Set(postsData.map((p: any) => p.user_id as string))] as string[];
+
+        // Get post author profiles
+        const { data: postAuthorProfiles } = postUserIds.length > 0
+          ? await supabase.rpc('get_profiles_display_info', { user_ids: postUserIds })
+          : { data: [] };
+
+        const postAuthorMap: Record<string, any> = {};
+        (postAuthorProfiles || []).forEach((p: any) => {
+          postAuthorMap[p.id] = p;
+        });
 
         // Get reactions
         const { data: reactionsData } = await (supabase
@@ -109,6 +120,8 @@ export default function FriendWall() {
             }
           });
 
+          const author = postAuthorMap[post.user_id];
+
           return {
             id: post.id,
             user_id: post.user_id,
@@ -117,9 +130,9 @@ export default function FriendWall() {
             message: post.message,
             created_at: post.created_at,
             user: {
-              id: friendId,
-              full_name: profiles?.[0]?.full_name || 'Unknown',
-              avatar_url: profiles?.[0]?.avatar_url
+              id: post.user_id,
+              full_name: author?.full_name || 'Unknown',
+              avatar_url: author?.avatar_url
             },
             reactions: Object.entries(reactionCounts).map(([emoji, data]) => ({
               emoji,
@@ -168,13 +181,13 @@ export default function FriendWall() {
 
     setSubmitting(true);
     try {
-      // Create a wall post (using 'wall_message' type)
+      // Create a wall post - user_id is the author, to_user_id in content is the wall owner
       const { error } = await (supabase
         .from('feed_posts' as any)
         .insert({
-          user_id: friendId,
+          user_id: user.id,
           post_type: 'wall_message',
-          content: { from_user_id: user.id },
+          content: { to_user_id: friendId },
           message: newMessage.trim()
         }) as any);
 
