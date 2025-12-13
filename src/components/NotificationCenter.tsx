@@ -34,37 +34,41 @@ export function NotificationCenter({ userId }: NotificationCenterProps) {
 
   const fetchNotifications = async () => {
     try {
-      // Fetch pending friend requests
+      // Fetch pending friend requests (just IDs and timestamps)
       const { data: friendRequests } = await (supabase
         .from('friendships' as any)
-        .select(`
-          id,
-          created_at,
-          profiles!friendships_requester_id_fkey (
-            id,
-            full_name,
-            avatar_url
-          )
-        `)
+        .select('id, created_at, requester_id')
         .eq('addressee_id', userId)
         .eq('status', 'pending')
         .order('created_at', { ascending: false }) as any);
 
-      const notifs: Notification[] = [];
-
-      // Add friend requests
-      if (friendRequests) {
-        friendRequests.forEach((req: any) => {
-          notifs.push({
-            id: `friend_${req.id}`,
-            type: 'friend_request',
-            title: 'Friend Request',
-            description: `${req.profiles?.full_name || 'Someone'} wants to be your friend`,
-            created_at: req.created_at,
-            data: { friendshipId: req.id, requesterId: req.profiles?.id }
-          });
-        });
+      if (!friendRequests || friendRequests.length === 0) {
+        setNotifications([]);
+        return;
       }
+
+      // Fetch requester profiles using secure RPC function
+      const requesterIds = friendRequests.map((r: any) => r.requester_id);
+      const { data: profiles } = await supabase
+        .rpc('get_profiles_display_info', { user_ids: requesterIds });
+
+      const profileMap: Record<string, any> = {};
+      (profiles || []).forEach((p: any) => {
+        profileMap[p.id] = p;
+      });
+
+      const notifs: Notification[] = friendRequests.map((req: any) => ({
+        id: `friend_${req.id}`,
+        type: 'friend_request' as const,
+        title: 'Friend Request',
+        description: `${profileMap[req.requester_id]?.full_name || 'Someone'} wants to be your friend`,
+        created_at: req.created_at,
+        data: { 
+          friendshipId: req.id, 
+          requesterId: req.requester_id,
+          requesterName: profileMap[req.requester_id]?.full_name 
+        }
+      }));
 
       setNotifications(notifs);
     } catch (error) {
@@ -87,12 +91,23 @@ export function NotificationCenter({ userId }: NotificationCenterProps) {
             table: 'friendships',
             filter: `addressee_id=eq.${userId}`
           },
-          (payload) => {
-            // New friend request received
+          async (payload: any) => {
+            // New friend request received - fetch the requester's name
+            const requesterId = payload.new?.requester_id;
+            let requesterName = 'Someone';
+            
+            if (requesterId) {
+              const { data: profiles } = await supabase
+                .rpc('get_profiles_display_info', { user_ids: [requesterId] });
+              if (profiles && profiles.length > 0) {
+                requesterName = profiles[0].full_name || 'Someone';
+              }
+            }
+            
             fetchNotifications();
             toast({
               title: "New Friend Request!",
-              description: "Someone wants to be your friend."
+              description: `${requesterName} wants to be your friend.`
             });
           }
         )

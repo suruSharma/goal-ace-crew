@@ -155,7 +155,10 @@ export default function Friends() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
                 >
-                  <Card>
+                  <Card 
+                    className="cursor-pointer hover:bg-muted/50 transition-colors"
+                    onClick={() => navigate(`/friends/${friend.id}`)}
+                  >
                     <CardContent className="py-4">
                       <div className="flex items-center gap-4">
                         <Avatar className="h-12 w-12">
@@ -166,11 +169,15 @@ export default function Friends() {
                         </Avatar>
                         <div className="flex-1">
                           <p className="font-semibold">{friend.full_name}</p>
+                          <p className="text-sm text-muted-foreground">Click to view wall</p>
                         </div>
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleRemoveFriend(friend.friendshipId)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRemoveFriend(friend.friendshipId);
+                          }}
                           disabled={processingId === friend.friendshipId}
                           className="text-destructive hover:text-destructive"
                         >
