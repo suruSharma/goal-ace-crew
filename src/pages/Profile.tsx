@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
-import { postWeightLog } from '@/lib/feedUtils';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -312,9 +311,6 @@ export default function Profile() {
       setWeightDate(new Date());
       setWeightDialogOpen(false);
       await fetchWeightHistory();
-
-      // Auto-post to feed
-      postWeightLog(user!.id, weightKg);
 
       toast({
         title: "Weight updated!",

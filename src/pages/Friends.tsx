@@ -155,10 +155,7 @@ export default function Friends() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
                 >
-                  <Card 
-                    className="cursor-pointer hover:bg-muted/50 transition-colors"
-                    onClick={() => navigate(`/friends/${friend.id}`)}
-                  >
+                  <Card>
                     <CardContent className="py-4">
                       <div className="flex items-center gap-4">
                         <Avatar className="h-12 w-12">

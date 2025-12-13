@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { 
-  Flame, Trophy, Users, Clock, LogOut, Rss, UserPlus, BarChart3, Menu, X,
+  Flame, Trophy, Users, Clock, LogOut, UserPlus, BarChart3, Menu, X,
   Home
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -78,7 +78,6 @@ export function GlobalNav() {
 
   const navItems = [
     { path: '/dashboard', label: 'Dashboard', icon: Home },
-    { path: '/feed', label: 'Feed', icon: Rss },
     { path: '/friends', label: 'Friends', icon: UserPlus, badge: pendingRequestCount },
     { path: '/challenge-history', label: 'History', icon: Clock },
     { path: '/achievements', label: 'Achievements', icon: Trophy },
