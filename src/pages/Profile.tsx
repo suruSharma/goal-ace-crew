@@ -95,15 +95,20 @@ export default function Profile() {
   const [weightDialogOpen, setWeightDialogOpen] = useState(false);
   const [myGroups, setMyGroups] = useState<{ id: string; name: string; status: string; memberCount: number }[]>([]);
 
+  // Calculate BMI in real-time from current input values (not saved values)
   const calculatedBMI = useMemo(() => {
-    if (!profile.height_cm || !profile.current_weight) return null;
-    const bmi = profile.current_weight / Math.pow(profile.height_cm / 100, 2);
+    const height = profile.height_cm;
+    const weight = profile.current_weight;
+    if (!height || !weight) return null;
+    const bmi = weight / Math.pow(height / 100, 2);
     return Math.round(bmi * 10) / 10;
   }, [profile.height_cm, profile.current_weight]);
 
   const goalBMI = useMemo(() => {
-    if (!profile.height_cm || !profile.goal_weight) return null;
-    const bmi = profile.goal_weight / Math.pow(profile.height_cm / 100, 2);
+    const height = profile.height_cm;
+    const goalWeight = profile.goal_weight;
+    if (!height || !goalWeight) return null;
+    const bmi = goalWeight / Math.pow(height / 100, 2);
     return Math.round(bmi * 10) / 10;
   }, [profile.height_cm, profile.goal_weight]);
 

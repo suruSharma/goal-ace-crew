@@ -754,20 +754,16 @@ export default function Dashboard() {
                     : 'You have group challenges active. Start a personal challenge to track your individual progress too!'
                   }
                 </p>
-                <div className={`flex flex-wrap gap-3 justify-center ${myGroups.length === 0 ? 'mb-6' : 'mb-4'}`}>
-                  <Button onClick={() => setShowSetup(true)} className="gap-2" size={myGroups.length === 0 ? 'lg' : 'default'}>
-                    <Flame className="w-4 h-4" />
-                    Start Personal Challenge
-                  </Button>
-                  {myGroups.length === 0 && (
+                {myGroups.length === 0 && (
+                  <div className="flex flex-wrap gap-3 justify-center mb-6">
                     <Button variant="outline" asChild className="gap-2" size="lg">
                       <Link to="/groups">
                         <Users className="w-4 h-4" />
                         Browse Groups
                       </Link>
                     </Button>
-                  )}
-                </div>
+                  </div>
+                )}
                 
                 {/* Quick Join with Invite Code - only show when no groups */}
                 {myGroups.length === 0 && (
