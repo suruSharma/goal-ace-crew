@@ -21,6 +21,7 @@ const getPostIcon = (type: string) => {
     case 'challenge_started': return <Flame className="w-4 h-4 text-orange-500" />;
     case 'challenge_completed': return <Target className="w-4 h-4 text-primary" />;
     case 'streak_milestone': return <Zap className="w-4 h-4 text-purple-500" />;
+    case 'wall_message': return <MessageCircle className="w-4 h-4 text-primary" />;
     default: return <Flame className="w-4 h-4" />;
   }
 };
@@ -39,6 +40,8 @@ const getPostTitle = (type: string, content: any) => {
       return `Completed the ${content.days || 75} day challenge!`;
     case 'streak_milestone':
       return `Reached a ${content.days || '?'} day streak!`;
+    case 'wall_message':
+      return 'Left a message';
     default:
       return 'Activity';
   }
@@ -47,23 +50,32 @@ const getPostTitle = (type: string, content: any) => {
 interface FeedPostProps {
   post: FeedPostType;
   currentUserId: string;
+  wallOwnerId?: string;
   onReact: (postId: string, emoji: string) => void;
   onComment: (postId: string, content: string) => void;
   onDeleteComment: (postId: string, commentId: string) => void;
+  onDeletePost?: (postId: string) => void;
 }
 
 export function FeedPostCard({ 
   post, 
   currentUserId, 
+  wallOwnerId,
   onReact, 
   onComment,
-  onDeleteComment 
+  onDeleteComment,
+  onDeletePost
 }: FeedPostProps) {
   const [showComments, setShowComments] = useState(false);
   const [showReactions, setShowReactions] = useState(false);
   const [newComment, setNewComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  // Can delete if: own post OR wall message on your wall
+  const canDelete = onDeletePost && (
+    post.user_id === currentUserId || 
+    (post.post_type === 'wall_message' && wallOwnerId === currentUserId)
+  );
   const handleSubmitComment = async () => {
     if (!newComment.trim()) return;
     setSubmitting(true);
@@ -97,6 +109,15 @@ export function FeedPostCard({
                 {formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}
               </p>
             </div>
+            {canDelete && (
+              <button
+                onClick={() => onDeletePost(post.id)}
+                className="p-1 text-muted-foreground hover:text-destructive transition-colors"
+                title="Delete post"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
           </div>
 
           {/* Content */}
