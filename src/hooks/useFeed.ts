@@ -41,7 +41,7 @@ export function useFeed(userId: string | undefined) {
     if (!userId) return;
     
     try {
-      // Get posts with user info - use type assertion for new tables
+      // Get posts with user info - exclude task_completion posts
       const { data: postsData, error: postsError } = await (supabase
         .from('feed_posts' as any)
         .select(`
@@ -57,6 +57,7 @@ export function useFeed(userId: string | undefined) {
             avatar_url
           )
         `)
+        .neq('post_type', 'task_completion')
         .order('created_at', { ascending: false })
         .limit(50) as any);
 
@@ -188,7 +189,8 @@ export function useFeed(userId: string | undefined) {
             .eq('id', newPostId)
             .single() as any);
 
-          if (postData) {
+          // Skip task_completion posts in real-time updates
+          if (postData && postData.post_type !== 'task_completion') {
             const newPost: FeedPost = {
               id: postData.id,
               user_id: postData.user_id,
