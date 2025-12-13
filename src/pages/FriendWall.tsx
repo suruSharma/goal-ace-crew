@@ -292,6 +292,26 @@ export default function FriendWall() {
     }
   };
 
+  const deletePost = async (postId: string) => {
+    try {
+      const { error } = await (supabase
+        .from('feed_posts' as any)
+        .delete()
+        .eq('id', postId) as any);
+
+      if (error) throw error;
+
+      toast({ title: "Message deleted" });
+      fetchFriendData();
+    } catch (error: any) {
+      toast({
+        title: "Error deleting message",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  };
+
   if (authLoading || loading) {
     return <SimpleLoadingSkeleton />;
   }
@@ -390,9 +410,11 @@ export default function FriendWall() {
               key={post.id}
               post={post}
               currentUserId={user?.id || ''}
+              wallOwnerId={friendId}
               onReact={addReaction}
               onComment={addComment}
               onDeleteComment={deleteComment}
+              onDeletePost={deletePost}
             />
           ))
         )}
