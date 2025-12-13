@@ -56,17 +56,9 @@ export default function Friends() {
     
     setSearching(true);
     try {
-      // Note: This query works because users can view profiles of:
-      // 1. Themselves (auth.uid() = id)
-      // 2. Friends (are_friends policy)
-      // 3. Group members (group members policy)
-      // For non-friends/non-group-members, the search may return limited results
+      // Use security definer function that only returns safe fields (id, name, avatar)
       const { data, error } = await supabase
-        .from('profiles')
-        .select('id, full_name, avatar_url')
-        .ilike('full_name', `%${searchQuery}%`)
-        .neq('id', user.id)
-        .limit(10);
+        .rpc('search_profiles_safe', { search_term: searchQuery.trim() });
 
       if (error) throw error;
       setSearchResults(data || []);

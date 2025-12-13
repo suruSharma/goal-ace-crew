@@ -724,6 +724,14 @@ export type Database = {
         Args: { _group_id: string; _user_id: string }
         Returns: boolean
       }
+      search_profiles_safe: {
+        Args: { search_term: string }
+        Returns: {
+          avatar_url: string
+          full_name: string
+          id: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
