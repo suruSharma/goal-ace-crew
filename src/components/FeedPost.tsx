@@ -26,7 +26,7 @@ const getPostIcon = (type: string) => {
   }
 };
 
-const getPostTitle = (type: string, content: any) => {
+const getPostTitle = (type: string, content: any, message?: string | null) => {
   switch (type) {
     case 'task_completion':
       return `Completed ${content.taskCount || 1} task${(content.taskCount || 1) > 1 ? 's' : ''}`;
@@ -41,7 +41,7 @@ const getPostTitle = (type: string, content: any) => {
     case 'streak_milestone':
       return `Reached a ${content.days || '?'} day streak!`;
     case 'wall_message':
-      return 'Left a message';
+      return null; // Wall messages just show the message directly
     default:
       return 'Activity';
   }
@@ -122,12 +122,18 @@ export function FeedPostCard({
 
           {/* Content */}
           <div className="mb-3">
-            <p className="font-medium">{getPostTitle(post.post_type, post.content)}</p>
-            {post.message && (
-              <p className="text-muted-foreground mt-1">{post.message}</p>
-            )}
-            {post.content.points && (
-              <p className="text-sm text-primary mt-1">+{post.content.points} points</p>
+            {post.post_type === 'wall_message' ? (
+              <p className="text-foreground">{post.message}</p>
+            ) : (
+              <>
+                <p className="font-medium">{getPostTitle(post.post_type, post.content, post.message)}</p>
+                {post.message && (
+                  <p className="text-muted-foreground mt-1">{post.message}</p>
+                )}
+                {post.content.points && (
+                  <p className="text-sm text-primary mt-1">+{post.content.points} points</p>
+                )}
+              </>
             )}
           </div>
 
