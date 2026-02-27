@@ -9,6 +9,22 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Generic success response — identical whether or not the user exists (prevents user enumeration)
+const SUCCESS_RESPONSE = JSON.stringify({
+  success: true,
+  message: "If an account exists with this email, you will receive a reset link.",
+});
+
+/** Escape HTML special characters to prevent XSS in email templates */
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 interface PasswordResetRequest {
   email: string;
 }
@@ -21,9 +37,8 @@ serve(async (req: Request): Promise<Response> => {
 
   try {
     const { email }: PasswordResetRequest = await req.json();
-    
+
     if (!email) {
-      console.error("Missing email in request");
       return new Response(
         JSON.stringify({ error: "Email is required" }),
         { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
@@ -33,14 +48,11 @@ serve(async (req: Request): Promise<Response> => {
     // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      console.error("Invalid email format:", email);
       return new Response(
         JSON.stringify({ error: "Invalid email format" }),
         { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
-
-    console.log(`Password reset requested for email: ${email}`);
 
     // Create Supabase admin client
     const supabaseAdmin = createClient(
@@ -49,59 +61,64 @@ serve(async (req: Request): Promise<Response> => {
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
-    // Look up user by email
-    const { data: { users }, error: userError } = await supabaseAdmin.auth.admin.listUsers();
-    
-    if (userError) {
-      console.error("Error listing users:", userError);
-      throw userError;
+    // Paginate through all users to find the matching email
+    let user: { id: string; email?: string } | undefined;
+    let page = 1;
+    const perPage = 1000;
+
+    while (!user) {
+      const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage });
+      if (error) {
+        console.error("Error fetching users during password reset");
+        return new Response(SUCCESS_RESPONSE, {
+          status: 200,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+      user = data.users.find((u) => u.email?.toLowerCase() === email.toLowerCase());
+      if (data.users.length < perPage) break; // no more pages
+      page++;
     }
 
-    const user = users.find(u => u.email?.toLowerCase() === email.toLowerCase());
-    
     if (!user) {
-      console.log(`No user found for email: ${email}`);
-      // Return success even if user not found (security best practice)
-      return new Response(
-        JSON.stringify({ success: true, message: "If an account exists with this email, you will receive a reset link." }),
-        { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
+      // Always return success to prevent user enumeration attacks
+      return new Response(SUCCESS_RESPONSE, {
+        status: 200,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
     }
 
-    // Get the user's profile to find their name
+    // Fetch the user's profile name for the email greeting
     const { data: profile } = await supabaseAdmin
-      .from('profiles')
-      .select('full_name')
-      .eq('id', user.id)
+      .from("profiles")
+      .select("full_name")
+      .eq("id", user.id)
       .maybeSingle();
-
-    console.log(`Found user, generating reset link`);
 
     // Generate password reset link
     const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
-      type: 'recovery',
+      type: "recovery",
       email: user.email!,
       options: {
-        redirectTo: `${req.headers.get('origin')}/auth?reset=true`,
-      }
+        redirectTo: `${req.headers.get("origin")}/auth?reset=true`,
+      },
     });
 
-    if (linkError) {
-      console.error("Error generating reset link:", linkError);
-      throw linkError;
+    if (linkError || !linkData.properties?.action_link) {
+      console.error("Error generating reset link");
+      return new Response(SUCCESS_RESPONSE, {
+        status: 200,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
     }
 
-    const resetLink = linkData.properties?.action_link;
-    
-    if (!resetLink) {
-      console.error("No reset link generated");
-      throw new Error("Failed to generate reset link");
-    }
+    const resetLink = linkData.properties.action_link;
 
-    console.log("Reset link generated, sending email...");
+    // Sanitize user-supplied data before embedding in HTML to prevent XSS
+    const safeName = escapeHtml(profile?.full_name ?? "there");
 
     // Send email via Resend
-    const emailResponse = await resend.emails.send({
+    await resend.emails.send({
       from: "75 Hard <onboarding@resend.dev>",
       to: [email],
       subject: "Reset your 75 Hard password",
@@ -115,11 +132,11 @@ serve(async (req: Request): Promise<Response> => {
         <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #0f172a; color: #e2e8f0; padding: 40px 20px;">
           <div style="max-width: 500px; margin: 0 auto; background: #1e293b; border-radius: 16px; padding: 32px; border: 1px solid #334155;">
             <div style="text-align: center; margin-bottom: 24px;">
-              <h1 style="color: #10b981; margin: 0; font-size: 24px;">🔥 75 Hard</h1>
+              <h1 style="color: #10b981; margin: 0; font-size: 24px;">&#x1F525; 75 Hard</h1>
             </div>
             <h2 style="margin: 0 0 16px; font-size: 20px; color: #f1f5f9;">Reset your password</h2>
             <p style="margin: 0 0 24px; color: #94a3b8; line-height: 1.6;">
-              Hey ${profile?.full_name || 'there'}! You requested a password reset for your 75 Hard account.
+              Hey ${safeName}! You requested a password reset for your 75 Hard account.
             </p>
             <a href="${resetLink}" style="display: block; background: linear-gradient(135deg, #10b981, #059669); color: white; text-decoration: none; padding: 14px 24px; border-radius: 8px; text-align: center; font-weight: 600; margin-bottom: 24px;">
               Reset Password
@@ -133,16 +150,15 @@ serve(async (req: Request): Promise<Response> => {
       `,
     });
 
-    console.log("Email sent successfully:", emailResponse);
-
+    return new Response(SUCCESS_RESPONSE, {
+      status: 200,
+      headers: { "Content-Type": "application/json", ...corsHeaders },
+    });
+  } catch (_error: unknown) {
+    // Never expose internal error details in production
+    console.error("Unhandled error in send-password-reset");
     return new Response(
-      JSON.stringify({ success: true, message: "If an account exists with this email, you will receive a reset link." }),
-      { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
-    );
-  } catch (error: any) {
-    console.error("Error in send-password-reset function:", error);
-    return new Response(
-      JSON.stringify({ error: error.message || "An error occurred" }),
+      JSON.stringify({ error: "An error occurred. Please try again later." }),
       { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
   }

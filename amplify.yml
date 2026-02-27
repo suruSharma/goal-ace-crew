@@ -1,0 +1,37 @@
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        # Install bun (the project's package manager)
+        - curl -fsSL https://bun.sh/install | bash
+        - export BUN_INSTALL="$HOME/.bun"
+        - export PATH="$BUN_INSTALL/bin:$PATH"
+        - bun install
+    build:
+      commands:
+        - export BUN_INSTALL="$HOME/.bun"
+        - export PATH="$BUN_INSTALL/bin:$PATH"
+        - bun run build
+  artifacts:
+    # Vite outputs to dist/ by default
+    baseDirectory: dist
+    files:
+      - '**/*'
+  cache:
+    paths:
+      - node_modules/**/*
+      - .bun/**/*
+
+# -----------------------------------------------------------------------
+# IMPORTANT — SPA Rewrite Rule (configure once in Amplify Console)
+# After deploying, go to:
+#   App settings > Rewrites and redirects > Add rule
+# Source:  </^[^.]+$|\.(?!(css|gif|ico|jpg|js|png|txt|svg|woff|woff2|ttf|map|json|webp)$)([^.]+$)/>
+# Target:  /index.html
+# Type:    200 (Rewrite)
+# This ensures React Router deep-links work (e.g. /dashboard, /profile).
+#
+# IMPORTANT — Environment Variables (configure in Amplify Console)
+# App settings > Environment variables — add all VITE_* variables from .env.example
+# -----------------------------------------------------------------------

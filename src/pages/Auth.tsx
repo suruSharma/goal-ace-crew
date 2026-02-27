@@ -152,8 +152,10 @@ export default function Auth() {
 
     setLoading(true);
     try {
+      // Apply the same username→email transformation used during sign-in
+      const formattedEmail = email.includes('@') ? email : `${email}@75hard.app`;
       const response = await supabase.functions.invoke('send-password-reset', {
-        body: { email }
+        body: { email: formattedEmail }
       });
 
       if (response.error) {
