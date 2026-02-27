@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import { useFriends } from '@/hooks/useFriends';
+import { useFriendStreaks } from '@/hooks/useFriendStreaks';
+import { useStreak } from '@/hooks/useStreak';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,10 +14,11 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PageHeader } from '@/components/PageHeader';
 import { SimpleLoadingSkeleton } from '@/components/PageLoadingSkeleton';
+import { FriendStreakComparison } from '@/components/FriendStreakComparison';
 import { useToast } from '@/hooks/use-toast';
 import { 
   Users, Search, UserPlus, UserMinus, Check, X, 
-  Loader2, Bell, UserCheck
+  Loader2, Bell, UserCheck, Flame
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -44,12 +47,44 @@ export default function Friends() {
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [searching, setSearching] = useState(false);
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [profileName, setProfileName] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [activeChallengeId, setActiveChallengeId] = useState<string | undefined>();
+
+  const friendIds = friends.map(f => f.id);
+  const { streaks: friendStreaks, loading: streaksLoading } = useFriendStreaks(friendIds);
+  const { currentStreak: myCurrentStreak, longestStreak: myLongestStreak } = useStreak(activeChallengeId);
 
   useEffect(() => {
     if (!authLoading && !user) {
       navigate('/auth');
     }
   }, [user, authLoading, navigate]);
+
+  // Fetch profile and active challenge for streak comparison
+  useEffect(() => {
+    if (!user) return;
+    const fetchProfile = async () => {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name, avatar_url')
+        .eq('id', user.id)
+        .maybeSingle();
+      if (profile) {
+        setProfileName(profile.full_name || 'You');
+        setAvatarUrl(profile.avatar_url);
+      }
+      const { data: challenge } = await supabase
+        .from('user_challenges')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+        .is('group_id', null)
+        .maybeSingle();
+      setActiveChallengeId(challenge?.id);
+    };
+    fetchProfile();
+  }, [user]);
 
   const searchUsers = async () => {
     if (!searchQuery.trim() || !user) return;
@@ -119,10 +154,14 @@ export default function Friends() {
       </PageHeader>
 
       <Tabs defaultValue="friends" className="mt-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="friends" className="gap-2">
             <UserCheck className="w-4 h-4" />
             Friends ({friends.length})
+          </TabsTrigger>
+          <TabsTrigger value="streaks" className="gap-2">
+            <Flame className="w-4 h-4" />
+            Streaks
           </TabsTrigger>
           <TabsTrigger value="requests" className="gap-2">
             <Bell className="w-4 h-4" />
@@ -130,7 +169,7 @@ export default function Friends() {
           </TabsTrigger>
           <TabsTrigger value="search" className="gap-2">
             <Search className="w-4 h-4" />
-            Find Friends
+            Find
           </TabsTrigger>
         </TabsList>
 
@@ -193,6 +232,19 @@ export default function Friends() {
               ))}
             </AnimatePresence>
           )}
+        </TabsContent>
+
+        {/* Streak Comparison */}
+        <TabsContent value="streaks" className="mt-6">
+          <FriendStreakComparison
+            friends={friends}
+            friendStreaks={friendStreaks}
+            myCurrentStreak={myCurrentStreak}
+            myLongestStreak={myLongestStreak}
+            userName={profileName}
+            userAvatar={avatarUrl}
+            loading={streaksLoading}
+          />
         </TabsContent>
 
         {/* Pending Requests */}
