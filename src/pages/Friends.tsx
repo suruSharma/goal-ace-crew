@@ -47,12 +47,44 @@ export default function Friends() {
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [searching, setSearching] = useState(false);
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [profileName, setProfileName] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [activeChallengeId, setActiveChallengeId] = useState<string | undefined>();
+
+  const friendIds = friends.map(f => f.id);
+  const { streaks: friendStreaks, loading: streaksLoading } = useFriendStreaks(friendIds);
+  const { currentStreak: myCurrentStreak, longestStreak: myLongestStreak } = useStreak(activeChallengeId);
 
   useEffect(() => {
     if (!authLoading && !user) {
       navigate('/auth');
     }
   }, [user, authLoading, navigate]);
+
+  // Fetch profile and active challenge for streak comparison
+  useEffect(() => {
+    if (!user) return;
+    const fetchProfile = async () => {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name, avatar_url')
+        .eq('id', user.id)
+        .maybeSingle();
+      if (profile) {
+        setProfileName(profile.full_name || 'You');
+        setAvatarUrl(profile.avatar_url);
+      }
+      const { data: challenge } = await supabase
+        .from('user_challenges')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+        .is('group_id', null)
+        .maybeSingle();
+      setActiveChallengeId(challenge?.id);
+    };
+    fetchProfile();
+  }, [user]);
 
   const searchUsers = async () => {
     if (!searchQuery.trim() || !user) return;
