@@ -20,7 +20,7 @@ export default function Auth() {
   const [mode, setMode] = useState<AuthMode>('signin');
   const [loading, setLoading] = useState(false);
   const [showProfileSetup, setShowProfileSetup] = useState(false);
-  const { signInWithEmail, signUpWithEmail, signInWithGoogle, signInWithApple, user, loading: authLoading } = useAuth();
+  const { signInWithEmail, signUpWithEmail, signInWithGoogle, user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -386,16 +386,6 @@ export default function Auth() {
                 Continue with Google
               </button>
 
-              <button
-                type="button"
-                onClick={signInWithApple}
-                className="w-full flex items-center justify-center gap-3 h-11 rounded-lg border border-border bg-background hover:bg-muted transition-colors text-sm font-medium"
-              >
-                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.7 9.05 7.4c1.39.07 2.35.74 3.15.8 1.19-.24 2.33-.94 3.6-.84 1.54.12 2.7.72 3.44 1.84-3.14 1.88-2.4 5.98.51 7.13-.58 1.5-1.32 2.99-2.7 3.95M13 3.5c.16 1.91-1.54 3.5-3.31 3.35C9.44 4.93 11.18 3.2 13 3.5z"/>
-                </svg>
-                Continue with Apple
-              </button>
             </div>
           )}
 
