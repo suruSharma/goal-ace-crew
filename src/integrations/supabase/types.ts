@@ -708,6 +708,14 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_friend_streaks: {
+        Args: { friend_ids: string[] }
+        Returns: {
+          current_streak: number
+          longest_streak: number
+          user_id: string
+        }[]
+      }
       get_profile_display_info: {
         Args: { user_id: string }
         Returns: {
