@@ -154,10 +154,14 @@ export default function Friends() {
       </PageHeader>
 
       <Tabs defaultValue="friends" className="mt-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="friends" className="gap-2">
             <UserCheck className="w-4 h-4" />
             Friends ({friends.length})
+          </TabsTrigger>
+          <TabsTrigger value="streaks" className="gap-2">
+            <Flame className="w-4 h-4" />
+            Streaks
           </TabsTrigger>
           <TabsTrigger value="requests" className="gap-2">
             <Bell className="w-4 h-4" />
@@ -165,7 +169,7 @@ export default function Friends() {
           </TabsTrigger>
           <TabsTrigger value="search" className="gap-2">
             <Search className="w-4 h-4" />
-            Find Friends
+            Find
           </TabsTrigger>
         </TabsList>
 
