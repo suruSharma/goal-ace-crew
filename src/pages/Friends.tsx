@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import { useFriends } from '@/hooks/useFriends';
+import { useFriendStreaks } from '@/hooks/useFriendStreaks';
+import { useStreak } from '@/hooks/useStreak';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,10 +14,11 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PageHeader } from '@/components/PageHeader';
 import { SimpleLoadingSkeleton } from '@/components/PageLoadingSkeleton';
+import { FriendStreakComparison } from '@/components/FriendStreakComparison';
 import { useToast } from '@/hooks/use-toast';
 import { 
   Users, Search, UserPlus, UserMinus, Check, X, 
-  Loader2, Bell, UserCheck
+  Loader2, Bell, UserCheck, Flame
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
