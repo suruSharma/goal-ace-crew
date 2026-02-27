@@ -234,6 +234,19 @@ export default function Friends() {
           )}
         </TabsContent>
 
+        {/* Streak Comparison */}
+        <TabsContent value="streaks" className="mt-6">
+          <FriendStreakComparison
+            friends={friends}
+            friendStreaks={friendStreaks}
+            myCurrentStreak={myCurrentStreak}
+            myLongestStreak={myLongestStreak}
+            userName={profileName}
+            userAvatar={avatarUrl}
+            loading={streaksLoading}
+          />
+        </TabsContent>
+
         {/* Pending Requests */}
         <TabsContent value="requests" className="mt-6 space-y-4">
           {pendingRequests.length === 0 ? (
