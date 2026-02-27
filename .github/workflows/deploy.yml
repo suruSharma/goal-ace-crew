@@ -1,0 +1,37 @@
+name: Deploy to Netlify every 5 commits
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # need full history to count commits
+
+      - name: Count commits since last deploy
+        id: count
+        run: |
+          LAST_TAG=$(git tag -l "deployed-*" | sort -V | tail -1)
+          if [ -z "$LAST_TAG" ]; then
+            COUNT=$(git rev-list --count HEAD)
+          else
+            COUNT=$(git rev-list --count "$LAST_TAG"..HEAD)
+          fi
+          echo "count=$COUNT" >> "$GITHUB_OUTPUT"
+          echo "Commits since last deploy: $COUNT"
+
+      - name: Trigger Netlify deploy
+        if: ${{ fromJSON(steps.count.outputs.count) >= 5 }}
+        run: curl -s -X POST -d '{}' "${{ secrets.NETLIFY_DEPLOY_HOOK }}"
+
+      - name: Tag this deploy
+        if: ${{ fromJSON(steps.count.outputs.count) >= 5 }}
+        run: |
+          git config user.email "github-actions@github.com"
+          git config user.name "GitHub Actions"
+          git tag "deployed-$(date +%Y%m%d-%H%M%S)"
+          git push origin --tags
